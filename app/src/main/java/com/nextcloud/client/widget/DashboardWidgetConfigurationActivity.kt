@@ -1,23 +1,9 @@
 /*
+ * Nextcloud - Android Client
  *
- * Nextcloud Android client application
- *
- * @author Tobias Kaminsky
- * Copyright (C) 2022 Tobias Kaminsky
- * Copyright (C) 2022 Nextcloud GmbH
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2022 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2022 Nextcloud GmbH
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
 package com.nextcloud.client.widget
 
@@ -75,7 +61,7 @@ class DashboardWidgetConfigurationActivity :
     @Inject
     lateinit var widgetUpdater: DashboardWidgetUpdater
 
-    var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
+    private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
 
     public override fun onCreate(bundle: Bundle?) {
         super.onCreate(bundle)
@@ -131,7 +117,7 @@ class DashboardWidgetConfigurationActivity :
 
         // Find the widget id from the intent.
         appWidgetId = intent?.extras?.getInt(
-            AppWidgetManager.EXTRA_APPWIDGET_ID,
+            EXTRA_APPWIDGET_ID,
             AppWidgetManager.INVALID_APPWIDGET_ID
         ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
 
@@ -167,11 +153,9 @@ class DashboardWidgetConfigurationActivity :
                                 visibility = View.VISIBLE
                             }
                             binding.emptyView.emptyListViewText.apply {
-                                setText(
-                                    String.format(
-                                        getString(R.string.widgets_not_available),
-                                        getString(R.string.app_name)
-                                    )
+                                text = String.format(
+                                    getString(R.string.widgets_not_available),
+                                    getString(R.string.app_name)
                                 )
                                 visibility = View.VISIBLE
                             }

@@ -1,25 +1,10 @@
 /*
- * Nextcloud Android client application
+ * Nextcloud - Android Client
  *
- * @author Tobias Kaminsky
- * @author Chris Narkiewicz
- *
- * Copyright (C) 2018 Tobias Kaminsky
- * Copyright (C) 2018 Nextcloud GmbH.
- * Copyright (C) 2019 Chris Narkiewicz <hello@ezaquarii.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2019 Chris Narkiewicz <hello@ezaquarii.com>
+ * SPDX-FileCopyrightText: 2018 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2018 Nextcloud GmbH
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
 package com.owncloud.android.ui.trashbin
 
@@ -84,7 +69,13 @@ class TrashbinActivity :
     var trashbinPresenter: TrashbinPresenter? = null
 
     private var active = false
-    private lateinit var binding: TrashbinActivityBinding
+    lateinit var binding: TrashbinActivityBinding
+
+    private val onBackPressedCallback = object : OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+            trashbinPresenter?.navigateUp()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -159,9 +150,9 @@ class TrashbinActivity :
         recyclerView.setHasFooter(true)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        viewThemeUtils.androidx.themeSwipeRefreshLayout(binding.swipeContainingList)
+        viewThemeUtils?.androidx?.themeSwipeRefreshLayout(binding.swipeContainingList)
         binding.swipeContainingList.setOnRefreshListener { loadFolder() }
-        viewThemeUtils.material.colorMaterialTextButton(findViewById(R.id.sort_button))
+        viewThemeUtils?.material?.colorMaterialTextButton(findViewById(R.id.sort_button))
 
         findViewById<View>(R.id.sort_button).setOnClickListener {
             DisplayUtils.openSortingOrderDialogFragment(
@@ -181,11 +172,7 @@ class TrashbinActivity :
     private fun handleOnBackPressed() {
         onBackPressedDispatcher.addCallback(
             this,
-            object : OnBackPressedCallback(true) {
-                override fun handleOnBackPressed() {
-                    trashbinPresenter?.navigateUp()
-                }
-            }
+            onBackPressedCallback
         )
     }
 
@@ -207,7 +194,7 @@ class TrashbinActivity :
         if (itemId == android.R.id.home) {
             if (isDrawerOpen) {
                 closeDrawer()
-            } else if (trashbinPresenter?.isRoot == true) {
+            } else if (trashbinPresenter?.isRoot == false) {
                 trashbinPresenter?.navigateUp()
             } else {
                 openDrawer()
@@ -233,7 +220,6 @@ class TrashbinActivity :
     override fun onItemClicked(file: TrashbinFile) {
         if (file.isFolder) {
             trashbinPresenter?.enterFolder(file.remotePath)
-            mDrawerToggle.isDrawerIndicatorEnabled = false
         }
     }
 
@@ -256,8 +242,9 @@ class TrashbinActivity :
         trashbinPresenter?.navigateUp()
     }
 
-    override fun setDrawerIndicatorEnabled(bool: Boolean) {
-        mDrawerToggle.isDrawerIndicatorEnabled = bool
+    override fun atRoot(isRoot: Boolean) {
+        mDrawerToggle.isDrawerIndicatorEnabled = isRoot
+        onBackPressedCallback.isEnabled = !isRoot
     }
 
     override fun onSortingOrderChosen(sortOrder: FileSortOrder?) {

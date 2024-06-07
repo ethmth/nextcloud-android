@@ -1,26 +1,11 @@
 /*
- * Nextcloud Android client application
+ * Nextcloud - Android Client
  *
- * @author Álvaro Brey Vilas
- * @author Andy Scherzinger
- * Copyright (C) 2021 Álvaro Brey Vilas
- * Copyright (C) 2021 Nextcloud GmbH
- * Copyright (C) 2015 Andy Scherzinger
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2021 Álvaro Brey <alvaro@alvarobrey.com>
+ * SPDX-FileCopyrightText: 2021 Nextcloud GmbH
+ * SPDX-FileCopyrightText: 2015 Andy Scherzinger
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
-
 package com.owncloud.android.utils
 
 import android.Manifest
@@ -41,6 +26,7 @@ import androidx.core.content.ContextCompat
 import com.google.android.material.snackbar.Snackbar
 import com.nextcloud.client.preferences.AppPreferences
 import com.nextcloud.client.preferences.AppPreferencesImpl
+import com.nextcloud.utils.extensions.getParcelableArgument
 import com.owncloud.android.R
 import com.owncloud.android.ui.dialog.StoragePermissionDialogFragment
 import com.owncloud.android.utils.theme.ViewThemeUtils
@@ -231,7 +217,10 @@ object PermissionUtil {
         ) {
             val listener: (requestKey: String, result: Bundle) -> Unit = { _, resultBundle ->
                 val result: StoragePermissionDialogFragment.Result? =
-                    resultBundle.getParcelable(StoragePermissionDialogFragment.RESULT_KEY)
+                    resultBundle.getParcelableArgument(
+                        StoragePermissionDialogFragment.RESULT_KEY,
+                        StoragePermissionDialogFragment.Result::class.java
+                    )
                 if (result != null) {
                     preferences.isStoragePermissionRequested = true
                     when (result) {

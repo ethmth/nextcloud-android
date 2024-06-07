@@ -1,25 +1,10 @@
 /*
+ * Nextcloud - Android Client
  *
- * Nextcloud Android client application
- *
- * @author Tobias Kaminsky
- * Copyright (C) 2019 Tobias Kaminsky
- * Copyright (C) 2019 Nextcloud GmbH
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2019 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2019 Nextcloud GmbH
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
-
 package com.owncloud.android.ui.preview;
 
 import android.os.AsyncTask;
@@ -35,6 +20,7 @@ import android.widget.TextView;
 import com.nextcloud.client.account.User;
 import com.nextcloud.client.account.UserAccountManager;
 import com.nextcloud.ui.fileactions.FileActionsBottomSheet;
+import com.nextcloud.utils.extensions.BundleExtensionsKt;
 import com.owncloud.android.R;
 import com.owncloud.android.datamodel.OCFile;
 import com.owncloud.android.lib.common.utils.Log_OC;
@@ -117,11 +103,11 @@ public class PreviewTextFileFragment extends PreviewTextFragment {
         Bundle args = getArguments();
 
         if (file == null) {
-            file = args.getParcelable(EXTRA_FILE);
+            file = BundleExtensionsKt.getParcelableArgument(args, EXTRA_FILE, OCFile.class);
         }
 
         if (user == null) {
-            user = args.getParcelable(EXTRA_USER);
+            user = BundleExtensionsKt.getParcelableArgument(args, EXTRA_USER, User.class);
         }
 
         if (args.containsKey(EXTRA_SEARCH_QUERY)) {
@@ -137,8 +123,8 @@ public class PreviewTextFileFragment extends PreviewTextFragment {
                 throw new IllegalStateException("Instanced with a NULL ownCloud Account");
             }
         } else {
-            file = savedInstanceState.getParcelable(EXTRA_FILE);
-            user = savedInstanceState.getParcelable(EXTRA_USER);
+            file = BundleExtensionsKt.getParcelableArgument(savedInstanceState, EXTRA_FILE, OCFile.class);
+            user = BundleExtensionsKt.getParcelableArgument(savedInstanceState, EXTRA_USER, User.class);
         }
 
         handler = new Handler();

@@ -8,18 +8,7 @@
  * Copyright (C) 2019 Nextcloud GmbH
  * Copyright (C) 2023 TSI-mc
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
 
 package com.owncloud.android.ui.dialog;
@@ -33,7 +22,6 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.Button;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -42,6 +30,7 @@ import com.nextcloud.client.account.CurrentAccountProvider;
 import com.nextcloud.client.account.User;
 import com.nextcloud.client.di.Injectable;
 import com.nextcloud.client.network.ClientFactory;
+import com.nextcloud.utils.extensions.BundleExtensionsKt;
 import com.owncloud.android.MainApp;
 import com.owncloud.android.R;
 import com.owncloud.android.databinding.ChooseTemplateBinding;
@@ -67,7 +56,6 @@ import com.owncloud.android.utils.theme.ViewThemeUtils;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -168,7 +156,7 @@ public class ChooseRichDocumentsTemplateDialogFragment extends DialogFragment im
             throw new RuntimeException(e); // we'll NPE without the client
         }
 
-        parentFolder = arguments.getParcelable(ARG_PARENT_FOLDER);
+        parentFolder = BundleExtensionsKt.getParcelableArgument(arguments, ARG_PARENT_FOLDER, OCFile.class);
         List<OCFile> folderContent = fileDataStorageManager.getFolderContent(parentFolder, false);
         fileNames = Sets.newHashSetWithExpectedSize(folderContent.size());
 
@@ -256,9 +244,20 @@ public class ChooseRichDocumentsTemplateDialogFragment extends DialogFragment im
         adapter.notifyDataSetChanged();
     }
 
+    private String getFileNameText() {
+        String result = "";
+        Editable text = binding.filename.getText();
+
+        if (text != null) {
+            result = text.toString();
+        }
+
+        return result;
+    }
+
     @Override
     public void onClick(View v) {
-        String name = binding.filename.getText().toString();
+        String name = getFileNameText();
         String path = parentFolder.getRemotePath() + name;
 
         Template selectedTemplate = adapter.getSelectedTemplate();
@@ -286,12 +285,13 @@ public class ChooseRichDocumentsTemplateDialogFragment extends DialogFragment im
     }
 
     private void prefillFilenameIfEmpty(Template template) {
-        String name = binding.filename.getText().toString();
+        String name = getFileNameText();
+
         if (name.isEmpty() || name.equalsIgnoreCase(DOT + template.getExtension())) {
             binding.filename.setText(String.format("%s.%s", template.getName(), template.getExtension()));
         }
 
-        final int dotIndex = binding.filename.getText().toString().lastIndexOf('.');
+        final int dotIndex = getFileNameText().lastIndexOf('.');
         if (dotIndex >= 0) {
             binding.filename.setSelection(dotIndex);
         }
@@ -300,7 +300,7 @@ public class ChooseRichDocumentsTemplateDialogFragment extends DialogFragment im
     private void checkEnablingCreateButton() {
         if (positiveButton != null) {
             Template selectedTemplate = adapter.getSelectedTemplate();
-            String name = Objects.requireNonNull(binding.filename.getText()).toString();
+            String name = getFileNameText();
             boolean isNameJustExtension = selectedTemplate != null && name.equalsIgnoreCase(
                 DOT + selectedTemplate.getExtension());
             boolean isNameEmpty = name.isEmpty() || isNameJustExtension;

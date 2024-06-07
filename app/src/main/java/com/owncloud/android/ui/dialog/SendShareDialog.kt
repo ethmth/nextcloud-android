@@ -1,9 +1,19 @@
+/*
+ * Nextcloud Android client application
+ *
+ * @author Tobias Kaminsky
+ * @author Andy Scherzinger
+ * Copyright (C) 2017 Tobias Kaminsky
+ * Copyright (C) 2017 Nextcloud GmbH.
+ * Copyright (C) 2018 Andy Scherzinger
+ *
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
+ */
 package com.owncloud.android.ui.dialog
 
 import android.content.ComponentName
 import android.content.Intent
 import android.graphics.drawable.Drawable
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -16,6 +26,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.nextcloud.android.common.ui.theme.utils.ColorRole
 import com.nextcloud.client.di.Injectable
 import com.nextcloud.client.utils.IntentUtil.createSendIntent
+import com.nextcloud.utils.extensions.getParcelableArgument
 import com.owncloud.android.R
 import com.owncloud.android.databinding.SendShareFragmentBinding
 import com.owncloud.android.datamodel.OCFile
@@ -30,28 +41,6 @@ import com.owncloud.android.utils.MimeTypeUtil
 import com.owncloud.android.utils.theme.ViewThemeUtils
 import javax.inject.Inject
 
-/*
- * Nextcloud Android client application
- *
- * @author Tobias Kaminsky
- * @author Andy Scherzinger
- * Copyright (C) 2017 Tobias Kaminsky
- * Copyright (C) 2017 Nextcloud GmbH.
- * Copyright (C) 2018 Andy Scherzinger
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 class SendShareDialog : BottomSheetDialogFragment(R.layout.send_share_fragment), Injectable {
 
     private lateinit var binding: SendShareFragmentBinding
@@ -73,13 +62,7 @@ class SendShareDialog : BottomSheetDialogFragment(R.layout.send_share_fragment),
         retainInstance = true
         val arguments = requireArguments()
 
-        file = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            arguments.getParcelable(KEY_OCFILE, OCFile::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            arguments.getParcelable(KEY_OCFILE)
-        }
-
+        file = arguments.getParcelableArgument(KEY_OCFILE, OCFile::class.java)
         hideNcSharingOptions = arguments.getBoolean(KEY_HIDE_NCSHARING_OPTIONS, false)
         sharingPublicPasswordEnforced = arguments.getBoolean(KEY_SHARING_PUBLIC_PASSWORD_ENFORCED, false)
         sharingPublicAskForPassword = arguments.getBoolean(KEY_SHARING_PUBLIC_ASK_FOR_PASSWORD)

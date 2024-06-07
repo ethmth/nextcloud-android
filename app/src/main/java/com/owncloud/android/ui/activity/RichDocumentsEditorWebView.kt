@@ -1,31 +1,15 @@
 /*
- * Nextcloud Android client application
+ * Nextcloud - Android Client
  *
- * @author Tobias Kaminsky
- * @author Chris Narkiewicz
- *
- * Copyright (C) 2018 Tobias Kaminsky
- * Copyright (C) 2018 Nextcloud GmbH.
- * Copyright (C) 2019 Chris Narkiewicz <hello@ezaquarii.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2019 Chris Narkiewicz <hello@ezaquarii.com>
+ * SPDX-FileCopyrightText: 2018 Tobias Kaminsky
+ * SPDX-FileCopyrightText: 2018 Nextcloud GmbH
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
 package com.owncloud.android.ui.activity
 
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.text.TextUtils
 import android.view.KeyEvent
@@ -35,6 +19,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import com.nextcloud.client.account.CurrentAccountProvider
 import com.nextcloud.client.network.ClientFactory
+import com.nextcloud.utils.extensions.getParcelableArgument
 import com.owncloud.android.R
 import com.owncloud.android.datamodel.OCFile
 import com.owncloud.android.lib.common.utils.Log_OC
@@ -71,9 +56,7 @@ class RichDocumentsEditorWebView : EditorWebView() {
 
         webView.addJavascriptInterface(RichDocumentsMobileInterface(), "RichDocumentsMobileInterface")
 
-        intent.getStringExtra(EXTRA_URL)?.let {
-            loadUrl(it)
-        }
+        loadUrl(intent.getStringExtra(EXTRA_URL))
 
         registerActivityResult()
     }
@@ -100,12 +83,7 @@ class RichDocumentsEditorWebView : EditorWebView() {
     }
 
     private fun handleRemoteFile(data: Intent) {
-        val file = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            data.getParcelableExtra(FolderPickerActivity.EXTRA_FILES, OCFile::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            data.getParcelableExtra(FolderPickerActivity.EXTRA_FILES)
-        }
+        val file = FolderPickerActivity.EXTRA_FILES?.let { data.getParcelableArgument(it, OCFile::class.java) }
 
         Thread {
             val user = currentAccountProvider?.user
@@ -155,7 +133,7 @@ class RichDocumentsEditorWebView : EditorWebView() {
         PrintAsyncTask(targetFile, url.toString(), WeakReference(this)).execute()
     }
 
-    public override fun loadUrl(url: String) {
+    public override fun loadUrl(url: String?) {
         if (TextUtils.isEmpty(url)) {
             RichDocumentsLoadUrlTask(this, user.get(), file).execute()
         } else {

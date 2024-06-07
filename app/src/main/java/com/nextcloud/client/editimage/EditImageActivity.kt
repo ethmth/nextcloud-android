@@ -1,22 +1,9 @@
 /*
- * Nextcloud Android client application
+ * Nextcloud - Android Client
  *
- * @author ZetaTom
- * Copyright (C) 2023 ZetaTom
- * Copyright (C) 2023 Nextcloud GmbH
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2023 ZetaTom
+ * SPDX-FileCopyrightText: 2023 Nextcloud GmbH
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
 package com.nextcloud.client.editimage
 
@@ -34,17 +21,17 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import com.canhub.cropper.CropImageView
 import com.nextcloud.client.di.Injectable
+import com.nextcloud.client.jobs.upload.FileUploadHelper
+import com.nextcloud.client.jobs.upload.FileUploadWorker
 import com.nextcloud.utils.extensions.getParcelableArgument
 import com.owncloud.android.R
 import com.owncloud.android.databinding.ActivityEditImageBinding
 import com.owncloud.android.datamodel.OCFile
-import com.owncloud.android.files.services.FileUploader
 import com.owncloud.android.files.services.NameCollisionPolicy
 import com.owncloud.android.lib.common.operations.OnRemoteOperationListener
 import com.owncloud.android.operations.UploadFileOperation
 import com.owncloud.android.ui.activity.FileActivity
 import com.owncloud.android.utils.DisplayUtils
-import com.owncloud.android.utils.FilesUploadHelper
 import com.owncloud.android.utils.MimeType
 import java.io.File
 
@@ -112,7 +99,7 @@ class EditImageActivity :
             resultUri?.substring(resultUri.lastIndexOf('.'))
 
         resultUri?.let {
-            FilesUploadHelper().uploadNewFiles(
+            FileUploadHelper().uploadNewFiles(
                 user = storageManager.user,
                 localPaths = arrayOf(it),
                 remotePaths = arrayOf(file.parentRemotePath + File.separator + newFileName),
@@ -121,7 +108,7 @@ class EditImageActivity :
                 requiresWifi = false,
                 requiresCharging = false,
                 nameCollisionPolicy = NameCollisionPolicy.RENAME,
-                localBehavior = FileUploader.LOCAL_BEHAVIOUR_DELETE
+                localBehavior = FileUploadWorker.LOCAL_BEHAVIOUR_DELETE
             )
         }
     }

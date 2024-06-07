@@ -1,24 +1,10 @@
 /*
+ * Nextcloud - Android Client
  *
- * Nextcloud Android client application
- *
- * @author Tobias Kaminsky
- * Copyright (C) 2020 Tobias Kaminsky
- * Copyright (C) 2020 Nextcloud GmbH
- * Copyright (C) 2020 Chris Narkiewicz <hello@ezaquarii.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2020 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2020 Chris Narkiewicz <hello@ezaquarii.com>
+ * SPDX-FileCopyrightText: 2020 Nextcloud GmbH
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
 package com.owncloud.android.files.services
 
@@ -26,6 +12,8 @@ import com.nextcloud.client.account.UserAccountManager
 import com.nextcloud.client.account.UserAccountManagerImpl
 import com.nextcloud.client.device.BatteryStatus
 import com.nextcloud.client.device.PowerManagementService
+import com.nextcloud.client.jobs.upload.FileUploadHelper
+import com.nextcloud.client.jobs.upload.FileUploadWorker
 import com.nextcloud.client.network.Connectivity
 import com.nextcloud.client.network.ConnectivityService
 import com.owncloud.android.AbstractOnServerIT
@@ -138,13 +126,11 @@ abstract class FileUploaderIT : AbstractOnServerIT() {
     fun testKeepLocalAndOverwriteRemoteStatic() {
         val file = getDummyFile("chunkedFile.txt")
 
-        FileUploader.uploadNewFile(
-            targetContext,
+        FileUploadHelper().uploadNewFiles(
             user,
-            file.absolutePath,
-            "/testFile.txt",
-            FileUploader.LOCAL_BEHAVIOUR_COPY,
-            null,
+            arrayOf(file.absolutePath),
+            arrayOf("/testFile.txt"),
+            FileUploadWorker.LOCAL_BEHAVIOUR_COPY,
             true,
             UploadFileOperation.CREATED_BY_USER,
             false,
@@ -162,11 +148,10 @@ abstract class FileUploaderIT : AbstractOnServerIT() {
         val ocFile2 = OCFile("/testFile.txt")
         ocFile2.storagePath = getDummyFile("empty.txt").absolutePath
 
-        FileUploader.uploadUpdateFile(
-            targetContext,
+        FileUploadHelper().uploadUpdatedFile(
             user,
-            ocFile2,
-            FileUploader.LOCAL_BEHAVIOUR_COPY,
+            arrayOf(ocFile2),
+            FileUploadWorker.LOCAL_BEHAVIOUR_COPY,
             NameCollisionPolicy.OVERWRITE
         )
 
@@ -197,7 +182,7 @@ abstract class FileUploaderIT : AbstractOnServerIT() {
                 null,
                 ocUpload,
                 NameCollisionPolicy.DEFAULT,
-                FileUploader.LOCAL_BEHAVIOUR_COPY,
+                FileUploadWorker.LOCAL_BEHAVIOUR_COPY,
                 targetContext,
                 false,
                 false,
@@ -225,7 +210,7 @@ abstract class FileUploaderIT : AbstractOnServerIT() {
                 null,
                 ocUpload2,
                 NameCollisionPolicy.RENAME,
-                FileUploader.LOCAL_BEHAVIOUR_COPY,
+                FileUploadWorker.LOCAL_BEHAVIOUR_COPY,
                 targetContext,
                 false,
                 false,
@@ -257,13 +242,11 @@ abstract class FileUploaderIT : AbstractOnServerIT() {
     fun testKeepBothStatic() {
         val file = getDummyFile("nonEmpty.txt")
 
-        FileUploader.uploadNewFile(
-            targetContext,
+        FileUploadHelper().uploadNewFiles(
             user,
-            file.absolutePath,
-            "/testFile.txt",
-            FileUploader.LOCAL_BEHAVIOUR_COPY,
-            null,
+            arrayOf(file.absolutePath),
+            arrayOf("/testFile.txt"),
+            FileUploadWorker.LOCAL_BEHAVIOUR_COPY,
             true,
             UploadFileOperation.CREATED_BY_USER,
             false,
@@ -281,11 +264,10 @@ abstract class FileUploaderIT : AbstractOnServerIT() {
         val ocFile2 = OCFile("/testFile.txt")
         ocFile2.storagePath = getDummyFile("empty.txt").absolutePath
 
-        FileUploader.uploadUpdateFile(
-            targetContext,
+        FileUploadHelper().uploadUpdatedFile(
             user,
-            ocFile2,
-            FileUploader.LOCAL_BEHAVIOUR_COPY,
+            arrayOf(ocFile2),
+            FileUploadWorker.LOCAL_BEHAVIOUR_COPY,
             NameCollisionPolicy.RENAME
         )
 
@@ -319,7 +301,7 @@ abstract class FileUploaderIT : AbstractOnServerIT() {
                 null,
                 ocUpload,
                 NameCollisionPolicy.DEFAULT,
-                FileUploader.LOCAL_BEHAVIOUR_COPY,
+                FileUploadWorker.LOCAL_BEHAVIOUR_COPY,
                 targetContext,
                 false,
                 false,
@@ -346,7 +328,7 @@ abstract class FileUploaderIT : AbstractOnServerIT() {
                 null,
                 ocUpload2,
                 NameCollisionPolicy.CANCEL,
-                FileUploader.LOCAL_BEHAVIOUR_COPY,
+                FileUploadWorker.LOCAL_BEHAVIOUR_COPY,
                 targetContext,
                 false,
                 false,
@@ -368,13 +350,11 @@ abstract class FileUploaderIT : AbstractOnServerIT() {
     fun testKeepServerStatic() {
         val file = getDummyFile("chunkedFile.txt")
 
-        FileUploader.uploadNewFile(
-            targetContext,
+        FileUploadHelper().uploadNewFiles(
             user,
-            file.absolutePath,
-            "/testFile.txt",
-            FileUploader.LOCAL_BEHAVIOUR_COPY,
-            null,
+            arrayOf(file.absolutePath),
+            arrayOf("/testFile.txt"),
+            FileUploadWorker.LOCAL_BEHAVIOUR_COPY,
             true,
             UploadFileOperation.CREATED_BY_USER,
             false,
@@ -392,11 +372,10 @@ abstract class FileUploaderIT : AbstractOnServerIT() {
         val ocFile2 = OCFile("/testFile.txt")
         ocFile2.storagePath = getDummyFile("empty.txt").absolutePath
 
-        FileUploader.uploadUpdateFile(
-            targetContext,
+        FileUploadHelper().uploadUpdatedFile(
             user,
-            ocFile2,
-            FileUploader.LOCAL_BEHAVIOUR_COPY,
+            arrayOf(ocFile2),
+            FileUploadWorker.LOCAL_BEHAVIOUR_COPY,
             NameCollisionPolicy.CANCEL
         )
 
@@ -425,7 +404,7 @@ abstract class FileUploaderIT : AbstractOnServerIT() {
                 null,
                 ocUpload,
                 NameCollisionPolicy.CANCEL,
-                FileUploader.LOCAL_BEHAVIOUR_COPY,
+                FileUploadWorker.LOCAL_BEHAVIOUR_COPY,
                 targetContext,
                 false,
                 false,
@@ -451,7 +430,7 @@ abstract class FileUploaderIT : AbstractOnServerIT() {
             null,
             ocUpload2,
             NameCollisionPolicy.CANCEL,
-            FileUploader.LOCAL_BEHAVIOUR_COPY,
+            FileUploadWorker.LOCAL_BEHAVIOUR_COPY,
             targetContext,
             false,
             false,
@@ -475,13 +454,11 @@ abstract class FileUploaderIT : AbstractOnServerIT() {
     fun testKeepCancelStatic() {
         val file = getDummyFile("chunkedFile.txt")
 
-        FileUploader.uploadNewFile(
-            targetContext,
+        FileUploadHelper().uploadNewFiles(
             user,
-            file.absolutePath,
-            "/testFile.txt",
-            FileUploader.LOCAL_BEHAVIOUR_COPY,
-            null,
+            arrayOf(file.absolutePath),
+            arrayOf("/testFile.txt"),
+            FileUploadWorker.LOCAL_BEHAVIOUR_COPY,
             true,
             UploadFileOperation.CREATED_BY_USER,
             false,
@@ -499,11 +476,10 @@ abstract class FileUploaderIT : AbstractOnServerIT() {
         val ocFile2 = OCFile("/testFile.txt")
         ocFile2.storagePath = getDummyFile("empty.txt").absolutePath
 
-        FileUploader.uploadUpdateFile(
-            targetContext,
+        FileUploadHelper().uploadUpdatedFile(
             user,
-            ocFile2,
-            FileUploader.LOCAL_BEHAVIOUR_COPY,
+            arrayOf(ocFile2),
+            FileUploadWorker.LOCAL_BEHAVIOUR_COPY,
             NameCollisionPolicy.CANCEL
         )
 

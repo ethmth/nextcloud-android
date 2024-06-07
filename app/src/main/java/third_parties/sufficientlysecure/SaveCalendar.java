@@ -1,22 +1,11 @@
 /*
- *  Copyright (C) 2015  Jon Griffiths (jon_p_griffiths@yahoo.com)
- *  Copyright (C) 2013  Dominik Schürmann <dominik@dominikschuermann.de>
- *  Copyright (C) 2010-2011  Lukas Aichbauer
+ * Nextcloud - Android Client
  *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2015 Jon Griffiths (jon_p_griffiths@yahoo.com)
+ * SPDX-FileCopyrightText: 2013 Dominik Schürmann <dominik@dominikschuermann.de>
+ * SPDX-FileCopyrightText: 2010-2011 Lukas Aichbauer
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
-
 package third_parties.sufficientlysecure;
 
 import android.annotation.SuppressLint;
@@ -42,11 +31,11 @@ import android.view.WindowManager;
 import android.widget.EditText;
 
 import com.nextcloud.client.account.User;
-import com.nextcloud.client.files.downloader.PostUploadAction;
-import com.nextcloud.client.files.downloader.Request;
-import com.nextcloud.client.files.downloader.TransferManagerConnection;
-import com.nextcloud.client.files.downloader.UploadRequest;
-import com.nextcloud.client.files.downloader.UploadTrigger;
+import com.nextcloud.client.files.Request;
+import com.nextcloud.client.files.UploadRequest;
+import com.nextcloud.client.jobs.transfer.TransferManagerConnection;
+import com.nextcloud.client.jobs.upload.PostUploadAction;
+import com.nextcloud.client.jobs.upload.UploadTrigger;
 import com.nextcloud.client.preferences.AppPreferences;
 import com.owncloud.android.R;
 import com.owncloud.android.datamodel.OCFile;

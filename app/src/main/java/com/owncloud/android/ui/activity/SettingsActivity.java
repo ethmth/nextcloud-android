@@ -1,29 +1,17 @@
 /*
- *   ownCloud Android client application
+ * Nextcloud - Android Client
  *
- *   @author Bartek Przybylski
- *   @author David A. Velasco
- *   @author Chris Narkiewicz
- *   @author TSI-mc
- *
- *   Copyright (C) 2011  Bartek Przybylski
- *   Copyright (C) 2016 ownCloud Inc.
- *   Copyright (C) 2016 Nextcloud
- *   Copyright (C) 2019 Chris Narkiewicz <hello@ezaquarii.com>
- *   Copyright (C) 2023 TSI-mc
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License version 2,
- *   as published by the Free Software Foundation.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-FileCopyrightText: 2023 Alper Ozturk <alper.ozturk@nextcloud.com>
+ * SPDX-FileCopyrightText: 2023 TSI-mc
+ * SPDX-FileCopyrightText: 2022-2023 Álvaro Brey <alvaro@alvarobrey.com>
+ * SPDX-FileCopyrightText: 2017-2018 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2019 Chris Narkiewicz <hello@ezaquarii.com>
+ * SPDX-FileCopyrightText: 2015-2017 Andy Scherzinger <info@andy-scherzinger.de>
+ * SPDX-FileCopyrightText: 2016 ownCloud Inc.
+ * SPDX-FileCopyrightText: 2014 Jose Antonio Barros Ramos <jabarros@solidgear.es>
+ * SPDX-FileCopyrightText: 2013 María Asensio Valverde <masensio@solidgear.es>
+ * SPDX-FileCopyrightText: 2011-2015 Bartosz Przybylski <bart.p.pl@gmail.com>
+ * SPDX-License-Identifier: GPL-2.0-only AND (AGPL-3.0-or-later OR GPL-2.0-only)
  */
 package com.owncloud.android.ui.activity;
 
@@ -101,7 +89,6 @@ import androidx.core.content.res.ResourcesCompat;
 
 /**
  * An Activity that allows the user to change the application's settings.
- * <p>
  * It proxies the necessary calls via {@link androidx.appcompat.app.AppCompatDelegate} to be used with AppCompat.
  */
 public class SettingsActivity extends PreferenceActivity
@@ -474,7 +461,7 @@ public class SettingsActivity extends PreferenceActivity
     }
 
     private void setupE2EMnemonicPreference(PreferenceCategory preferenceCategoryMore) {
-        String mnemonic = arbitraryDataProvider.getValue(user.getAccountName(), EncryptionUtils.MNEMONIC);
+        String mnemonic = arbitraryDataProvider.getValue(user.getAccountName(), EncryptionUtils.MNEMONIC).trim();
 
         Preference pMnemonic = findPreference("mnemonic");
         if (pMnemonic != null) {
@@ -991,7 +978,7 @@ public class SettingsActivity extends PreferenceActivity
                 RequestCredentialsActivity.KEY_CHECK_RESULT_TRUE) {
 
                 ArbitraryDataProvider arbitraryDataProvider = new ArbitraryDataProviderImpl(this);
-                String mnemonic = arbitraryDataProvider.getValue(user.getAccountName(), EncryptionUtils.MNEMONIC);
+                String mnemonic = arbitraryDataProvider.getValue(user.getAccountName(), EncryptionUtils.MNEMONIC).trim();
 
                 AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.FallbackTheming_Dialog);
                 AlertDialog alertDialog = builder.setTitle(R.string.prefs_e2e_mnemonic)

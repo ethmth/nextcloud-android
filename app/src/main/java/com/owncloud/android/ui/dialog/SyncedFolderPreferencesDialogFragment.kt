@@ -1,22 +1,9 @@
 /*
- * Nextcloud Android client application
+ * Nextcloud - Android Client
  *
- * @author Andy Scherzinger
- * Copyright (C) 2016 Andy Scherzinger
- * Copyright (C) 2016 Nextcloud
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
- *
- * You should have received a copy of the GNU Affero General Public
- * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2016 Andy Scherzinger
+ * SPDX-FileCopyrightText: 2016 Nextcloud
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
 package com.owncloud.android.ui.dialog
 
@@ -25,7 +12,6 @@ import android.app.Dialog
 import android.content.DialogInterface
 import android.content.Intent
 import android.graphics.Typeface
-import android.os.Build
 import android.os.Bundle
 import android.text.TextUtils
 import android.text.style.StyleSpan
@@ -36,6 +22,7 @@ import androidx.fragment.app.DialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.nextcloud.client.di.Injectable
 import com.nextcloud.client.preferences.SubFolderRule
+import com.nextcloud.utils.extensions.getParcelableArgument
 import com.owncloud.android.R
 import com.owncloud.android.databinding.SyncedFoldersSettingsLayoutBinding
 import com.owncloud.android.datamodel.MediaFolderType
@@ -91,12 +78,7 @@ class SyncedFolderPreferencesDialogFragment : DialogFragment(), Injectable {
 
         val arguments = arguments
         if (arguments != null) {
-            syncedFolder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                arguments.getParcelable(SYNCED_FOLDER_PARCELABLE, SyncedFolderParcelable::class.java)
-            } else {
-                @Suppress("DEPRECATION")
-                arguments.getParcelable(SYNCED_FOLDER_PARCELABLE)
-            }
+            syncedFolder = arguments.getParcelableArgument(SYNCED_FOLDER_PARCELABLE, SyncedFolderParcelable::class.java)
         }
 
         uploadBehaviorItemStrings = resources.getTextArray(R.array.pref_behaviour_entries)
@@ -135,11 +117,15 @@ class SyncedFolderPreferencesDialogFragment : DialogFragment(), Injectable {
             // hide local folder chooser and delete for non-custom folders
             binding.localFolderContainer.visibility = View.GONE
             isNeutralButtonActive = false
+            binding.settingInstantUploadExcludeHiddenContainer.visibility = View.GONE
         } else if (syncedFolder!!.id <= SyncedFolder.UNPERSISTED_ID) {
             isNeutralButtonActive = false
 
             // Hide delete/enabled for unpersisted custom folders
             binding.syncEnabled.visibility = View.GONE
+
+            // Show exclude hidden checkbox when {@link MediaFolderType#CUSTOM}
+            binding.settingInstantUploadExcludeHiddenContainer.visibility = View.VISIBLE
 
             // auto set custom folder to enabled
             syncedFolder?.isEnabled = true
@@ -151,6 +137,10 @@ class SyncedFolderPreferencesDialogFragment : DialogFragment(), Injectable {
             binding.btnPositive.isEnabled = false
         } else {
             binding.localFolderContainer.visibility = View.GONE
+            if (MediaFolderType.CUSTOM.id == syncedFolder!!.type.id) {
+                // Show exclude hidden checkbox when {@link MediaFolderType#CUSTOM}
+                binding.settingInstantUploadExcludeHiddenContainer.visibility = View.VISIBLE
+            }
         }
     }
 
@@ -161,7 +151,8 @@ class SyncedFolderPreferencesDialogFragment : DialogFragment(), Injectable {
             binding.settingInstantUploadOnWifiCheckbox,
             binding.settingInstantUploadOnChargingCheckbox,
             binding.settingInstantUploadExistingCheckbox,
-            binding.settingInstantUploadPathUseSubfoldersCheckbox
+            binding.settingInstantUploadPathUseSubfoldersCheckbox,
+            binding.settingInstantUploadExcludeHiddenCheckbox
         )
 
         viewThemeUtils?.material?.colorMaterialButtonPrimaryTonal(binding.btnPositive)
@@ -214,6 +205,7 @@ class SyncedFolderPreferencesDialogFragment : DialogFragment(), Injectable {
             binding.settingInstantUploadOnChargingCheckbox.isChecked = it.isChargingOnly
             binding.settingInstantUploadExistingCheckbox.isChecked = it.isExisting
             binding.settingInstantUploadPathUseSubfoldersCheckbox.isChecked = it.isSubfolderByDate
+            binding.settingInstantUploadExcludeHiddenCheckbox.isChecked = it.isExcludeHidden
 
             binding.settingInstantUploadSubfolderRuleSpinner.setSelection(it.subFolderRule.ordinal)
 
@@ -316,6 +308,8 @@ class SyncedFolderPreferencesDialogFragment : DialogFragment(), Injectable {
             binding.settingInstantUploadExistingContainer.alpha = alpha
             binding.settingInstantUploadPathUseSubfoldersContainer.isEnabled = enable
             binding.settingInstantUploadPathUseSubfoldersContainer.alpha = alpha
+            binding.settingInstantUploadExcludeHiddenContainer.isEnabled = enable
+            binding.settingInstantUploadExcludeHiddenContainer.alpha = alpha
             binding.remoteFolderContainer.isEnabled = enable
             binding.remoteFolderContainer.alpha = alpha
             binding.localFolderContainer.isEnabled = enable
@@ -326,6 +320,7 @@ class SyncedFolderPreferencesDialogFragment : DialogFragment(), Injectable {
             binding.settingInstantUploadOnChargingCheckbox.isEnabled = enable
             binding.settingInstantUploadExistingCheckbox.isEnabled = enable
             binding.settingInstantUploadPathUseSubfoldersCheckbox.isEnabled = enable
+            binding.settingInstantUploadExcludeHiddenCheckbox.isEnabled = enable
         }
 
         checkWritableFolder()
@@ -369,6 +364,10 @@ class SyncedFolderPreferencesDialogFragment : DialogFragment(), Injectable {
                     binding.settingInstantUploadSubfolderRuleContainer.visibility = View.GONE
                 }
             }
+            binding.settingInstantUploadExcludeHiddenContainer.setOnClickListener {
+                syncedFolder.isExcludeHidden = !syncedFolder.isExcludeHidden
+                binding.settingInstantUploadExcludeHiddenCheckbox.toggle()
+            }
             binding.settingInstantUploadSubfolderRuleSpinner.onItemSelectedListener =
                 object : AdapterView.OnItemSelectedListener {
                     override fun onItemSelected(adapterView: AdapterView<*>?, view: View, i: Int, l: Long) {
@@ -384,7 +383,9 @@ class SyncedFolderPreferencesDialogFragment : DialogFragment(), Injectable {
         }
 
         binding.remoteFolderContainer.setOnClickListener {
-            val action = Intent(activity, FolderPickerActivity::class.java)
+            val action = Intent(activity, FolderPickerActivity::class.java).apply {
+                putExtra(FolderPickerActivity.EXTRA_ACTION, FolderPickerActivity.CHOOSE_LOCATION)
+            }
             requireActivity().startActivityForResult(action, REQUEST_CODE__SELECT_REMOTE_FOLDER)
         }
         binding.localFolderContainer.setOnClickListener {
@@ -455,7 +456,6 @@ class SyncedFolderPreferencesDialogFragment : DialogFragment(), Injectable {
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putBoolean(BEHAVIOUR_DIALOG_STATE, behaviourDialogShown)
         outState.putBoolean(NAME_COLLISION_POLICY_DIALOG_STATE, nameCollisionPolicyDialogShown)
-        super.onSaveInstanceState(outState)
     }
 
     override fun onViewStateRestored(savedInstanceState: Bundle?) {
@@ -522,14 +522,19 @@ class SyncedFolderPreferencesDialogFragment : DialogFragment(), Injectable {
         private const val alphaDisabled = 0.7f
 
         @JvmStatic
-        fun newInstance(syncedFolder: SyncedFolderDisplayItem?, section: Int): SyncedFolderPreferencesDialogFragment {
-            requireNotNull(syncedFolder) { "SyncedFolder is mandatory but NULL!" }
-            val args = Bundle()
-            args.putParcelable(SYNCED_FOLDER_PARCELABLE, SyncedFolderParcelable(syncedFolder, section))
-            val dialogFragment = SyncedFolderPreferencesDialogFragment()
-            dialogFragment.arguments = args
-            dialogFragment.setStyle(STYLE_NORMAL, R.style.Theme_ownCloud_Dialog)
-            return dialogFragment
+        fun newInstance(syncedFolder: SyncedFolderDisplayItem?, section: Int): SyncedFolderPreferencesDialogFragment? {
+            if (syncedFolder == null) {
+                return null
+            }
+
+            val args = Bundle().apply {
+                putParcelable(SYNCED_FOLDER_PARCELABLE, SyncedFolderParcelable(syncedFolder, section))
+            }
+
+            return SyncedFolderPreferencesDialogFragment().apply {
+                arguments = args
+                setStyle(STYLE_NORMAL, R.style.Theme_ownCloud_Dialog)
+            }
         }
 
         /**

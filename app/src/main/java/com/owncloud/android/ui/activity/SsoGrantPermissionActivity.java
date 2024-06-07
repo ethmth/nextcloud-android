@@ -3,21 +3,10 @@
  *
  * @author David Luhmer
  * @author Andy Scherzinger
- * Copyright (C) 2018 David Luhmer
+ * Copyright (C) 2018 David Luhmer <david-dev@live.de>
  * Copyright (C) 2018 Andy Scherzinger
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
 
 package com.owncloud.android.ui.activity;
@@ -40,6 +29,7 @@ import android.text.style.StyleSpan;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.nextcloud.android.sso.Constants;
+import com.nextcloud.utils.extensions.IntentExtensionsKt;
 import com.owncloud.android.MainApp;
 import com.owncloud.android.R;
 import com.owncloud.android.databinding.DialogSsoGrantPermissionBinding;
@@ -92,13 +82,16 @@ public class SsoGrantPermissionActivity extends BaseActivity {
         if (callingActivity != null) {
             packageName = callingActivity.getPackageName();
             final String appName = getAppNameForPackage(packageName);
-            account = getIntent().getParcelableExtra(NEXTCLOUD_FILES_ACCOUNT);
+            account = IntentExtensionsKt.getParcelableArgument(getIntent(), NEXTCLOUD_FILES_ACCOUNT, Account.class);
 
-            final SpannableStringBuilder dialogText = makeSpecialPartsBold(
-                getString(R.string.single_sign_on_request_token, appName, account.name),
-                appName,
-                account.name);
-            binding.permissionText.setText(dialogText);
+            if (account != null) {
+                final SpannableStringBuilder dialogText = makeSpecialPartsBold(
+                    getString(R.string.single_sign_on_request_token, appName, account.name),
+                    appName,
+                    account.name);
+                binding.permissionText.setText(dialogText);
+            }
+
             try {
                 if (packageName != null) {
                     Drawable appIcon = getPackageManager().getApplicationIcon(packageName);

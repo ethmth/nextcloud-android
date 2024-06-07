@@ -1,23 +1,13 @@
 /*
- * ownCloud Android client application
+ * Nextcloud - Android Client
  *
- * @author Bartek Przybylski
- * @author David A. Velasco
- * @author masensio
- * Copyright (C) 2011  Bartek Przybylski
- * Copyright (C) 2016 ownCloud Inc.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2022 Álvaro Brey  <alvaro@alvarobrey.com>
+ * SPDX-FileCopyrightText: 2016-2021 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2016 ownCloud Inc.
+ * SPDX-FileCopyrightText: 2014-2015 María Asensio Valverde <masensio@solidgear.es>
+ * SPDX-FileCopyrightText: 2012 David A. Velasco <dvelasco@solidgear.es>
+ * SPDX-FileCopyrightText: 2011 Bartosz Przybylski <bart.p.pl@gmail.com>
+ * SPDX-License-Identifier: GPL-2.0-only AND (AGPL-3.0-or-later OR GPL-2.0-only)
  */
 package com.owncloud.android.db;
 
@@ -35,7 +25,7 @@ import java.util.List;
  */
 public class ProviderMeta {
     public static final String DB_NAME = "filelist";
-    public static final int DB_VERSION = 76;
+    public static final int DB_VERSION = 81;
 
     private ProviderMeta() {
         // No instance
@@ -129,6 +119,7 @@ public class ProviderMeta {
         public static final String FILE_LOCK_TIMEOUT = "lock_timeout";
         public static final String FILE_LOCK_TOKEN = "lock_token";
         public static final String FILE_TAGS = "tags";
+        public static final String FILE_E2E_COUNTER = "e2e_counter";
 
         public static final List<String> FILE_ALL_COLUMNS = Collections.unmodifiableList(Arrays.asList(
                 _ID,
@@ -178,6 +169,7 @@ public class ProviderMeta {
                 FILE_LOCK_TOKEN,
                 FILE_METADATA_SIZE,
                 FILE_METADATA_LIVE_PHOTO,
+                FILE_E2E_COUNTER,
                 FILE_TAGS,
                 FILE_METADATA_GPS));
         public static final String FILE_DEFAULT_SORT_ORDER = FILE_NAME + " collate nocase asc";
@@ -248,6 +240,7 @@ public class ProviderMeta {
         public static final String CAPABILITIES_SERVER_BACKGROUND_PLAIN = "background_plain";
         public static final String CAPABILITIES_END_TO_END_ENCRYPTION = "end_to_end_encryption";
         public static final String CAPABILITIES_END_TO_END_ENCRYPTION_KEYS_EXIST = "end_to_end_encryption_keys_exist";
+        public static final String CAPABILITIES_END_TO_END_ENCRYPTION_API_VERSION = "end_to_end_encryption_api_version";
         public static final String CAPABILITIES_ACTIVITY = "activity";
         public static final String CAPABILITIES_RICHDOCUMENT = "richdocument";
         public static final String CAPABILITIES_RICHDOCUMENT_MIMETYPE_LIST = "richdocument_mimetype_list";
@@ -262,6 +255,7 @@ public class ProviderMeta {
         public static final String CAPABILITIES_ETAG = "etag";
         public static final String CAPABILITIES_USER_STATUS = "user_status";
         public static final String CAPABILITIES_USER_STATUS_SUPPORTS_EMOJI = "user_status_supports_emoji";
+        public static final String CAPABILITIES_ASSISTANT = "assistant";
         public static final String CAPABILITIES_GROUPFOLDERS = "groupfolders";
         public static final String CAPABILITIES_DROP_ACCOUNT = "drop_account";
         public static final String CAPABILITIES_SECURITY_GUARD = "security_guard";
@@ -299,6 +293,8 @@ public class ProviderMeta {
         public static final String SYNCED_FOLDER_NAME_COLLISION_POLICY = "name_collision_policy";
         public static final String SYNCED_FOLDER_HIDDEN = "hidden";
         public static final String SYNCED_FOLDER_SUBFOLDER_RULE = "sub_folder_rule";
+        public static final String SYNCED_FOLDER_EXCLUDE_HIDDEN = "exclude_hidden";
+        public static final String SYNCED_FOLDER_LAST_SCAN_TIMESTAMP_MS = "last_scan_timestamp_ms";
 
         // Columns of external links table
         public static final String EXTERNAL_LINKS_ICON_URL = "icon_url";

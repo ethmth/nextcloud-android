@@ -1,30 +1,17 @@
 /*
- * Nextcloud Android client application
+ * Nextcloud - Android Client
  *
- * @author Tobias Kaminsky
- * Copyright (C) 2020 Tobias Kaminsky
- * Copyright (C) 2020 Nextcloud GmbH
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2020 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2020 Nextcloud GmbH
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
-
 package com.nextcloud.client.jobs
 
 import android.Manifest
 import androidx.test.rule.GrantPermissionRule
 import androidx.work.WorkManager
 import com.nextcloud.client.core.ClockImpl
+import com.nextcloud.client.preferences.AppPreferencesImpl
 import com.nextcloud.test.RetryTestRule
 import com.owncloud.android.AbstractIT
 import com.owncloud.android.AbstractOnServerIT
@@ -43,7 +30,8 @@ import java.io.FileInputStream
 
 class ContactsBackupIT : AbstractOnServerIT() {
     val workmanager = WorkManager.getInstance(targetContext)
-    private val backgroundJobManager = BackgroundJobManagerImpl(workmanager, ClockImpl())
+    val preferences = AppPreferencesImpl.fromContext(targetContext)
+    private val backgroundJobManager = BackgroundJobManagerImpl(workmanager, ClockImpl(), preferences)
 
     @get:Rule
     val writeContactsRule = GrantPermissionRule.grant(Manifest.permission.WRITE_CONTACTS)

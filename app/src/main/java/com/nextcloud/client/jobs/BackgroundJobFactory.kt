@@ -1,21 +1,8 @@
 /*
- * Nextcloud Android client application
+ * Nextcloud - Android Client
  *
- * @author Chris Narkiewicz
- * Copyright (C) 2020 Chris Narkiewicz <hello@ezaquarii.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2020 Chris Narkiewicz <hello@ezaquarii.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
 package com.nextcloud.client.jobs
 
@@ -35,6 +22,8 @@ import com.nextcloud.client.device.PowerManagementService
 import com.nextcloud.client.documentscan.GeneratePDFUseCase
 import com.nextcloud.client.documentscan.GeneratePdfFromImagesWork
 import com.nextcloud.client.integrations.deck.DeckApi
+import com.nextcloud.client.jobs.download.FileDownloadWorker
+import com.nextcloud.client.jobs.upload.FileUploadWorker
 import com.nextcloud.client.logger.Logger
 import com.nextcloud.client.network.ConnectivityService
 import com.nextcloud.client.preferences.AppPreferences
@@ -51,7 +40,7 @@ import javax.inject.Provider
  *
  * This class is doing too many things and should be split up into smaller factories.
  */
-@Suppress("LongParameterList") // satisfied by DI
+@Suppress("LongParameterList", "TooManyFunctions") // satisfied by DI
 class BackgroundJobFactory @Inject constructor(
     private val logger: Logger,
     private val preferences: AppPreferences,
@@ -101,9 +90,11 @@ class BackgroundJobFactory @Inject constructor(
                 CalendarBackupWork::class -> createCalendarBackupWork(context, workerParameters)
                 CalendarImportWork::class -> createCalendarImportWork(context, workerParameters)
                 FilesExportWork::class -> createFilesExportWork(context, workerParameters)
-                FilesUploadWorker::class -> createFilesUploadWorker(context, workerParameters)
+                FileUploadWorker::class -> createFilesUploadWorker(context, workerParameters)
+                FileDownloadWorker::class -> createFilesDownloadWorker(context, workerParameters)
                 GeneratePdfFromImagesWork::class -> createPDFGenerateWork(context, workerParameters)
                 HealthStatusWork::class -> createHealthStatusWork(context, workerParameters)
+                TestJob::class -> createTestJob(context, workerParameters)
                 else -> null // caller falls back to default factory
             }
         }
@@ -183,7 +174,8 @@ class BackgroundJobFactory @Inject constructor(
             uploadsStorageManager = uploadsStorageManager,
             connectivityService = connectivityService,
             powerManagementService = powerManagementService,
-            syncedFolderProvider = syncedFolderProvider
+            syncedFolderProvider = syncedFolderProvider,
+            backgroundJobManager = backgroundJobManager.get()
         )
     }
 
@@ -237,13 +229,25 @@ class BackgroundJobFactory @Inject constructor(
         )
     }
 
-    private fun createFilesUploadWorker(context: Context, params: WorkerParameters): FilesUploadWorker {
-        return FilesUploadWorker(
+    private fun createFilesUploadWorker(context: Context, params: WorkerParameters): FileUploadWorker {
+        return FileUploadWorker(
             uploadsStorageManager,
             connectivityService,
             powerManagementService,
             accountManager,
             viewThemeUtils.get(),
+            localBroadcastManager.get(),
+            backgroundJobManager.get(),
+            preferences,
+            context,
+            params
+        )
+    }
+
+    private fun createFilesDownloadWorker(context: Context, params: WorkerParameters): FileDownloadWorker {
+        return FileDownloadWorker(
+            viewThemeUtils.get(),
+            accountManager,
             localBroadcastManager.get(),
             context,
             params
@@ -267,7 +271,16 @@ class BackgroundJobFactory @Inject constructor(
             context,
             params,
             accountManager,
-            arbitraryDataProvider
+            arbitraryDataProvider,
+            backgroundJobManager.get()
+        )
+    }
+
+    private fun createTestJob(context: Context, params: WorkerParameters): TestJob {
+        return TestJob(
+            context,
+            params,
+            backgroundJobManager.get()
         )
     }
 }

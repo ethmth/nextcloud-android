@@ -1,21 +1,8 @@
 /*
- * Nextcloud application
+ * Nextcloud - Android Client
  *
- * @author Stefan Niedermann
- * Copyright (C) 2020 Stefan Niedermann <info@niedermann.it>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2020 Stefan Niedermann <info@niedermann.it>
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 package com.nextcloud.client.integrations.deck
 
@@ -24,11 +11,11 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import com.nextcloud.client.account.User
-import com.nextcloud.java.util.Optional
 import com.owncloud.android.lib.resources.notifications.models.Notification
+import java.util.Optional
 
 class DeckApiImpl(private val context: Context, private val packageManager: PackageManager) : DeckApi {
-    override fun createForwardToDeckActionIntent(notification: Notification, user: User): Optional<PendingIntent?> {
+    override fun createForwardToDeckActionIntent(notification: Notification, user: User): Optional<PendingIntent> {
         if (APP_NAME.equals(notification.app, ignoreCase = true)) {
             val intent = Intent()
             for (appPackage in DECK_APP_PACKAGES) {

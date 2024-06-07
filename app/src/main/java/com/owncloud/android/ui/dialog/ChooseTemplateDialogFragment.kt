@@ -1,27 +1,12 @@
 /*
- * Nextcloud Android client application
+ * Nextcloud - Android Client
  *
- * @author Tobias Kaminsky
- * @author Chris Narkiewicz
- * @author TSI-mc
- *
- * Copyright (C) 2018 Tobias Kaminsky
- * Copyright (C) 2018 Nextcloud GmbH.
- * Copyright (C) 2019 Chris Narkiewicz <hello@ezaquarii.com>
- * Copyright (C) 20223TSI-mc
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2023 TSI-mc
+ * SPDX-FileCopyrightText: 2022 Álvaro Brey <alvaro.brey@nextcloud.com>
+ * SPDX-FileCopyrightText: 2019 Chris Narkiewicz <hello@ezaquarii.com>
+ * SPDX-FileCopyrightText: 2018 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2018 Nextcloud GmbH
+ * SPDX-License-Identifier: GPL-3.0-or-later AND AGPL-3.0-or-later
  */
 package com.owncloud.android.ui.dialog
 
@@ -44,6 +29,7 @@ import com.nextcloud.client.account.User
 import com.nextcloud.client.di.Injectable
 import com.nextcloud.client.network.ClientFactory
 import com.nextcloud.client.network.ClientFactory.CreationException
+import com.nextcloud.utils.extensions.getParcelableArgument
 import com.owncloud.android.MainApp
 import com.owncloud.android.R
 import com.owncloud.android.databinding.ChooseTemplateBinding
@@ -127,8 +113,8 @@ class ChooseTemplateDialogFragment : DialogFragment(), View.OnClickListener, Tem
         val arguments = arguments ?: throw IllegalArgumentException("Arguments may not be null")
         val activity = activity ?: throw IllegalArgumentException("Activity may not be null")
 
-        parentFolder = arguments.getParcelable(ARG_PARENT_FOLDER)
-        creator = arguments.getParcelable(ARG_CREATOR)
+        parentFolder = arguments.getParcelableArgument(ARG_PARENT_FOLDER, OCFile::class.java)
+        creator = arguments.getParcelableArgument(ARG_CREATOR, Creator::class.java)
 
         title = arguments.getString(ARG_HEADLINE, getString(R.string.select_template))
         title = when (savedInstanceState) {

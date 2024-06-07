@@ -7,18 +7,7 @@
  * Copyright (C) 2017 Nextcloud GmbH.
  * Copyright (C) 2023 TSI-mc
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
 package com.owncloud.android.ui.dialog
 
@@ -29,7 +18,6 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.AsyncTask
-import android.os.Build
 import android.os.Bundle
 import android.view.View
 import androidx.annotation.VisibleForTesting
@@ -39,18 +27,19 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.nextcloud.client.account.User
 import com.nextcloud.client.di.Injectable
+import com.nextcloud.utils.extensions.getParcelableArgument
 import com.owncloud.android.R
 import com.owncloud.android.databinding.SetupEncryptionDialogBinding
 import com.owncloud.android.datamodel.ArbitraryDataProvider
 import com.owncloud.android.datamodel.ArbitraryDataProviderImpl
 import com.owncloud.android.lib.common.accounts.AccountUtils
 import com.owncloud.android.lib.common.utils.Log_OC
-import com.owncloud.android.lib.resources.users.DeletePublicKeyOperation
-import com.owncloud.android.lib.resources.users.GetPrivateKeyOperation
-import com.owncloud.android.lib.resources.users.GetPublicKeyOperation
-import com.owncloud.android.lib.resources.users.SendCSROperation
-import com.owncloud.android.lib.resources.users.StorePrivateKeyOperation
-import com.owncloud.android.utils.CsrHelper
+import com.owncloud.android.lib.resources.e2ee.CsrHelper
+import com.owncloud.android.lib.resources.users.DeletePublicKeyRemoteOperation
+import com.owncloud.android.lib.resources.users.GetPrivateKeyRemoteOperation
+import com.owncloud.android.lib.resources.users.GetPublicKeyRemoteOperation
+import com.owncloud.android.lib.resources.users.SendCSRRemoteOperation
+import com.owncloud.android.lib.resources.users.StorePrivateKeyRemoteOperation
 import com.owncloud.android.utils.EncryptionUtils
 import com.owncloud.android.utils.theme.ViewThemeUtils
 import java.io.IOException
@@ -109,12 +98,7 @@ class SetupEncryptionDialogFragment : DialogFragment(), Injectable {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         checkNotNull(arguments) { "Arguments may not be null" }
 
-        user = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requireArguments().getParcelable(ARG_USER, User::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            requireArguments().getParcelable(ARG_USER)
-        }
+        user = requireArguments().getParcelableArgument(ARG_USER, User::class.java)
 
         if (savedInstanceState != null) {
             keyWords = savedInstanceState.getStringArrayList(EncryptionUtils.MNEMONIC)
@@ -160,6 +144,7 @@ class SetupEncryptionDialogFragment : DialogFragment(), Injectable {
                 dialog.dismiss()
                 notifyResult()
             }
+
             KEY_EXISTING_USED -> {
                 decryptPrivateKey(dialog)
             }
@@ -167,6 +152,7 @@ class SetupEncryptionDialogFragment : DialogFragment(), Injectable {
             KEY_GENERATE -> {
                 generateKey()
             }
+
             else -> dialog.dismiss()
         }
     }
@@ -178,7 +164,7 @@ class SetupEncryptionDialogFragment : DialogFragment(), Injectable {
 
         try {
             val privateKey = task?.get()
-            val mnemonicUnchanged = binding.encryptionPasswordInput.text.toString()
+            val mnemonicUnchanged = binding.encryptionPasswordInput.text.toString().trim()
             val mnemonic =
                 binding.encryptionPasswordInput.text.toString().replace("\\s".toRegex(), "")
                     .lowercase()
@@ -290,18 +276,18 @@ class SetupEncryptionDialogFragment : DialogFragment(), Injectable {
             mWeakContext = WeakReference(context)
         }
 
-        @Suppress("ReturnCount")
+        @Suppress("ReturnCount", "LongMethod")
         @Deprecated("Deprecated in Java")
         override fun doInBackground(vararg params: Void?): String? {
             // fetch private/public key
             // if available
             //  - store public key
             //  - decrypt private key, store unencrypted private key in database
-            val context = mWeakContext.get()
-            val publicKeyOperation = GetPublicKeyOperation()
+            val context = mWeakContext.get() ?: return null
+            val publicKeyOperation = GetPublicKeyRemoteOperation()
             val user = user ?: return null
 
-            val publicKeyResult = publicKeyOperation.execute(user, context)
+            val publicKeyResult = publicKeyOperation.executeNextcloudClient(user, context)
 
             if (publicKeyResult.isSuccess) {
                 Log_OC.d(TAG, "public key successful downloaded for " + user.accountName)
@@ -320,7 +306,7 @@ class SetupEncryptionDialogFragment : DialogFragment(), Injectable {
                 return null
             }
 
-            val privateKeyResult = GetPrivateKeyOperation().execute(user, context)
+            val privateKeyResult = GetPrivateKeyRemoteOperation().executeNextcloudClient(user, context)
             if (privateKeyResult.isSuccess) {
                 Log_OC.d(TAG, "private key successful downloaded for " + user!!.accountName)
                 keyResult = KEY_EXISTING_USED
@@ -381,7 +367,7 @@ class SetupEncryptionDialogFragment : DialogFragment(), Injectable {
             binding.encryptionStatus.setText(R.string.end_to_end_encryption_generating_keys)
         }
 
-        @Suppress("TooGenericExceptionCaught", "TooGenericExceptionThrown", "ReturnCount")
+        @Suppress("TooGenericExceptionCaught", "TooGenericExceptionThrown", "ReturnCount", "LongMethod")
         @Deprecated("Deprecated in Java")
         override fun doInBackground(vararg voids: Void?): String {
             //  - create CSR, push to server, store returned public key in database
@@ -389,6 +375,11 @@ class SetupEncryptionDialogFragment : DialogFragment(), Injectable {
             try {
                 val context = mWeakContext.get()
                 val publicKeyString: String
+
+                if (context == null) {
+                    keyResult = KEY_FAILED
+                    return ""
+                }
 
                 // Create public/private key pair
                 val keyPair = EncryptionUtils.generateKeyPair()
@@ -398,12 +389,12 @@ class SetupEncryptionDialogFragment : DialogFragment(), Injectable {
                 val user = user ?: return ""
 
                 val userId = accountManager.getUserData(user.toPlatformAccount(), AccountUtils.Constants.KEY_USER_ID)
-                val urlEncoded = CsrHelper.generateCsrPemEncodedString(keyPair, userId)
-                val operation = SendCSROperation(urlEncoded)
-                val result = operation.execute(user, context)
+                val urlEncoded = CsrHelper().generateCsrPemEncodedString(keyPair, userId)
+                val operation = SendCSRRemoteOperation(urlEncoded)
+                val result = operation.executeNextcloudClient(user, context)
 
                 if (result.isSuccess) {
-                    publicKeyString = result.data[0] as String
+                    publicKeyString = result.resultData
                     if (!EncryptionUtils.isMatchingKeys(keyPair, publicKeyString)) {
                         EncryptionUtils.reportE2eError(arbitraryDataProvider, user)
                         throw RuntimeException("Wrong CSR returned")
@@ -423,8 +414,8 @@ class SetupEncryptionDialogFragment : DialogFragment(), Injectable {
                 )
 
                 // upload encryptedPrivateKey
-                val storePrivateKeyOperation = StorePrivateKeyOperation(encryptedPrivateKey)
-                val storePrivateKeyResult = storePrivateKeyOperation.execute(user, context)
+                val storePrivateKeyOperation = StorePrivateKeyRemoteOperation(encryptedPrivateKey)
+                val storePrivateKeyResult = storePrivateKeyOperation.executeNextcloudClient(user, context)
                 if (storePrivateKeyResult.isSuccess) {
                     Log_OC.d(TAG, "private key success")
                     arbitraryDataProvider?.storeOrUpdateKeyValue(
@@ -444,10 +435,10 @@ class SetupEncryptionDialogFragment : DialogFragment(), Injectable {
                     )
                     keyResult = KEY_CREATED
 
-                    return storePrivateKeyResult.data[0] as String
+                    return storePrivateKeyResult.resultData
                 } else {
-                    val deletePublicKeyOperation = DeletePublicKeyOperation()
-                    deletePublicKeyOperation.execute(user, context)
+                    val deletePublicKeyOperation = DeletePublicKeyRemoteOperation()
+                    deletePublicKeyOperation.executeNextcloudClient(user, context)
                 }
             } catch (e: Exception) {
                 Log_OC.e(TAG, e.message)

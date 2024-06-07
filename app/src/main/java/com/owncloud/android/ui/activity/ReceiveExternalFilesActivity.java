@@ -1,28 +1,17 @@
 /*
- *  ownCloud Android client application
+ * Nextcloud - Android Client
  *
- *  @author Bartek Przybylski
- *  @author masensio
- *  @author Juan Carlos González Cabrero
- *  @author David A. Velasco
- *  @author Chris Narkiewicz
- *  Copyright (C) 2012  Bartek Przybylski
- *  Copyright (C) 2016 ownCloud Inc.
- *  Copyright (C) 2019 Chris Narkiewicz <hello@ezaquarii.com>
- *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License version 2,
- *  as published by the Free Software Foundation.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2023 TSI-mc
+ * SPDX-FileCopyrightText: 2016-2023 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2019 Chris Narkiewicz <hello@ezaquarii.com>
+ * SPDX-FileCopyrightText: 2016-2018 Andy Scherzinger <info@andy-scherzinger.de>
+ * SPDX-FileCopyrightText: 2016 ownCloud Inc.
+ * SPDX-FileCopyrightText: 2016 David A. Velasco <dvelasco@solidgear.es>
+ * SPDX-FileCopyrightText: 2016 Juan Carlos González Cabrero <malkomich@gmail.com>
+ * SPDX-FileCopyrightText: 2013 María Asensio Valverde <masensio@solidgear.es>
+ * SPDX-FileCopyrightText: 2011-2012 Bartosz Przybylski <bart.p.pl@gmail.com>
+ * SPDX-License-Identifier: GPL-2.0-only AND (AGPL-3.0-or-later OR GPL-2.0-only)
  */
-
 package com.owncloud.android.ui.activity;
 
 import android.accounts.Account;
@@ -49,7 +38,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager.LayoutParams;
 import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -60,14 +48,17 @@ import android.widget.Toast;
 import com.google.android.material.button.MaterialButton;
 import com.nextcloud.client.account.User;
 import com.nextcloud.client.di.Injectable;
+import com.nextcloud.client.jobs.upload.FileUploadHelper;
+import com.nextcloud.client.jobs.upload.FileUploadWorker;
 import com.nextcloud.client.preferences.AppPreferences;
+import com.nextcloud.utils.extensions.BundleExtensionsKt;
+import com.nextcloud.utils.extensions.IntentExtensionsKt;
 import com.owncloud.android.MainApp;
 import com.owncloud.android.R;
 import com.owncloud.android.databinding.ReceiveExternalFilesBinding;
 import com.owncloud.android.databinding.UploadFileDialogBinding;
 import com.owncloud.android.datamodel.OCFile;
 import com.owncloud.android.datamodel.SyncedFolderProvider;
-import com.owncloud.android.files.services.FileUploader;
 import com.owncloud.android.files.services.NameCollisionPolicy;
 import com.owncloud.android.lib.common.operations.RemoteOperation;
 import com.owncloud.android.lib.common.operations.RemoteOperationResult;
@@ -104,7 +95,6 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Stack;
-import java.util.Vector;
 
 import javax.inject.Inject;
 
@@ -125,11 +115,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import static com.owncloud.android.utils.DisplayUtils.openSortingOrderDialogFragment;
 
 /**
- * This can be used to upload things to an ownCloud instance.
+ * This can be used to upload things to an Nextcloud instance.
  */
 public class ReceiveExternalFilesActivity extends FileActivity
     implements View.OnClickListener, CopyAndUploadContentUrisTask.OnCopyTmpFilesTaskListener,
-    SortingOrderDialogFragment.OnSortingOrderListener, Injectable, AccountChooserInterface, ReceiveExternalFilesAdapter.OnItemClickListener {
+    SortingOrderDialogFragment.OnSortingOrderListener, Injectable, AccountChooserInterface,
+    ReceiveExternalFilesAdapter.OnItemClickListener {
 
     private static final String TAG = ReceiveExternalFilesActivity.class.getSimpleName();
 
@@ -173,8 +164,6 @@ public class ReceiveExternalFilesActivity extends FileActivity
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        prepareStreamsToUpload();
-
         if (savedInstanceState != null) {
             String parentPath = savedInstanceState.getString(KEY_PARENTS);
 
@@ -182,13 +171,15 @@ public class ReceiveExternalFilesActivity extends FileActivity
                 mParents.addAll(Arrays.asList(parentPath.split(OCFile.PATH_SEPARATOR)));
             }
 
-            mFile = savedInstanceState.getParcelable(KEY_FILE);
+            mFile = BundleExtensionsKt.getParcelableArgument(savedInstanceState, KEY_FILE, OCFile.class);
         }
         mAccountManager = (AccountManager) getSystemService(Context.ACCOUNT_SERVICE);
 
         super.onCreate(savedInstanceState);
         binding = ReceiveExternalFilesBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        prepareStreamsToUpload();
 
         // Listen for sync messages
         IntentFilter syncIntentFilter = new IntentFilter(RefreshFolderOperation.
@@ -813,7 +804,8 @@ public class ReceiveExternalFilesActivity extends FileActivity
 
     private void startSyncFolderOperation(OCFile folder) {
         if (folder == null) {
-            throw new IllegalArgumentException("Folder must not be null");
+            DisplayUtils.showSnackMessage(this, R.string.receive_external_files_activity_start_sync_folder_is_not_exists_message);
+            return;
         }
 
         long currentSyncTime = System.currentTimeMillis();
@@ -849,16 +841,16 @@ public class ReceiveExternalFilesActivity extends FileActivity
     private void prepareStreamsToUpload() {
         Intent intent = getIntent();
 
-        if (Intent.ACTION_SEND.equals(intent.getAction())) {
+        if (intent.hasExtra(Intent.EXTRA_STREAM) && Intent.ACTION_SEND.equals(intent.getAction())) {
             mStreamsToUpload = new ArrayList<>();
-            mStreamsToUpload.add(intent.getParcelableExtra(Intent.EXTRA_STREAM));
-        } else if (Intent.ACTION_SEND_MULTIPLE.equals(intent.getAction())) {
+            mStreamsToUpload.add(IntentExtensionsKt.getParcelableArgument(intent, Intent.EXTRA_STREAM, Parcelable.class));
+        } else if (intent.hasExtra(Intent.EXTRA_STREAM) && Intent.ACTION_SEND_MULTIPLE.equals(intent.getAction())) {
             mStreamsToUpload = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
-        }
-
-        if (mStreamsToUpload == null || mStreamsToUpload.isEmpty() || mStreamsToUpload.get(0) == null) {
+        } else if (intent.hasExtra(Intent.EXTRA_TEXT) && Intent.ACTION_SEND.equals(intent.getAction())) {
             mStreamsToUpload = null;
             saveTextsFromIntent(intent);
+        } else {
+            showErrorDialog(R.string.uploader_error_message_no_file_to_upload, R.string.uploader_error_title_file_cannot_be_uploaded);
         }
     }
 
@@ -884,19 +876,16 @@ public class ReceiveExternalFilesActivity extends FileActivity
     }
 
     public void uploadFile(String tmpName, String filename) {
-        FileUploader.uploadNewFile(
-            getBaseContext(),
+        FileUploadHelper.Companion.instance().uploadNewFiles(
             getUser().orElseThrow(RuntimeException::new),
-            tmpName,
-            mFile.getRemotePath() + filename,
-            FileUploader.LOCAL_BEHAVIOUR_COPY,
-            null,
+            new String[]{ tmpName },
+            new String[]{ mFile.getRemotePath() + filename},
+            FileUploadWorker.LOCAL_BEHAVIOUR_COPY,
             true,
             UploadFileOperation.CREATED_BY_USER,
             false,
             false,
-            NameCollisionPolicy.ASK_USER
-                                  );
+            NameCollisionPolicy.ASK_USER);
         finish();
     }
 
@@ -907,7 +896,7 @@ public class ReceiveExternalFilesActivity extends FileActivity
             mStreamsToUpload,
             mUploadPath,
             getUser().orElseThrow(RuntimeException::new),
-            FileUploader.LOCAL_BEHAVIOUR_DELETE,
+            FileUploadWorker.LOCAL_BEHAVIOUR_DELETE,
             true, // Show waiting dialog while file is being copied from private storage
             this  // Copy temp task listener
         );

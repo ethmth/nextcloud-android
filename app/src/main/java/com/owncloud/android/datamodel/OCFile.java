@@ -1,26 +1,17 @@
 /*
- *   ownCloud Android client application
+ * Nextcloud - Android Client
  *
- *   @author Bartek Przybylski
- *   @author David A. Velasco
- *   Copyright (C) 2012  Bartek Przybylski
- *   Copyright (C) 2016 ownCloud Inc.
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License version 2,
- *   as published by the Free Software Foundation.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-FileCopyrightText: 2023 Alper Ozturk <alper.ozturk@nextcloud.com>
+ * SPDX-FileCopyrightText: 2022 Álvaro Brey Vilas <alvaro@alvarobrey.com>
+ * SPDX-FileCopyrightText: 2020 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2018 Andy Scherzinger <info@andy-scherzinger.de>
+ * SPDX-FileCopyrightText: 2018 Mario Danic <mario@lovelyhq.com>
+ * SPDX-FileCopyrightText: 2016 ownCloud Inc.
+ * SPDX-FileCopyrightText: 2012-2016 David A. Velasco <dvelasco@solidgear.es>
+ * SPDX-FileCopyrightText: 2012 Bartosz Przybylski <bart.p.pl@gmail.com>
+ * SPDX-License-Identifier: GPL-2.0-only AND (AGPL-3.0-or-later OR GPL-2.0-only)
  */
 package com.owncloud.android.datamodel;
-
 
 import android.content.ContentResolver;
 import android.content.Context;
@@ -121,6 +112,7 @@ public class OCFile implements Parcelable, Comparable<OCFile>, ServerFileInterfa
     private String lockToken;
     @Nullable
     private ImageDimension imageDimension;
+    private long e2eCounter = -1;
     @Nullable
     private GeoLocation geolocation;
     private List<String> tags = new ArrayList<>();
@@ -358,15 +350,6 @@ public class OCFile implements Parcelable, Comparable<OCFile>, ServerFileInterfa
             return new File(localPath).exists();
         }
         return false;
-    }
-
-    public String getFileNameWithoutExtension(String fileName) {
-        int dotIndex = fileName.lastIndexOf('.');
-        if (dotIndex > 0) {
-            return fileName.substring(0, dotIndex);
-        } else {
-            return fileName;
-        }
     }
 
     /**
@@ -1056,4 +1039,15 @@ public class OCFile implements Parcelable, Comparable<OCFile>, ServerFileInterfa
         this.tags = tags;
     }
 
+    public long getE2eCounter() {
+        return e2eCounter;
+    }
+
+    public void setE2eCounter(@Nullable Long e2eCounter) {
+        if (e2eCounter == null) {
+            this.e2eCounter = -1;
+        } else {
+            this.e2eCounter = e2eCounter;
+        }
+    }
 }

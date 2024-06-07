@@ -1,24 +1,17 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-  ownCloud Android client application
-
-  Copyright (C) 2012  Bartek Przybylski
-  Copyright (C) 2015 ownCloud Inc.
-  Copyright (C) 2019 Chris Narkiewicz <hello@ezaquarii.com>
-
-  This program is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License version 2,
-  as published by the Free Software Foundation.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Nextcloud - Android Client
+  ~
+  ~ SPDX-FileCopyrightText: 2022 Álvaro Brey  <alvaro@alvarobrey.com>
+  ~ SPDX-FileCopyrightText: 2016-2022 Andy Scherzinger <info@andy-scherzinger.de>
+  ~ SPDX-FileCopyrightText: 2020 Joris Bodin <joris.bodin@infomaniak.com>
+  ~ SPDX-FileCopyrightText: 2017-2020 Tobias Kaminsky <tobias@kaminsky.me>
+  ~ SPDX-FileCopyrightText: 2019 Chris Narkiewicz <hello@ezaquarii.com>
+  ~ SPDX-FileCopyrightText: 2015 ownCloud Inc.
+  ~ SPDX-FileCopyrightText: 2012 Bartosz Przybylski
+  ~ SPDX-License-Identifier: GPL-2.0-only AND (AGPL-3.0-or-later OR GPL-2.0-only)
 -->
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- General ownCloud app style -->
     <style name="BaseTheme.ownCloud" parent="Theme.Material3.DayNight">
         <item name="actionBarStyle">@style/Theme.ownCloud.Widget.ActionBar</item>
         <item name="android:actionBarStyle">@style/Theme.ownCloud.Widget.ActionBar</item>
@@ -104,25 +97,6 @@
 
     <style name="FallbackTheming.Dialog.ButtonStyle" parent="Widget.Material3.Button.TextButton.Dialog">
         <item name="android:textColor">@color/text_color</item>
-    </style>
-
-    <!-- separate action bar style for activities without an action bar -->
-    <style name="BaseTheme.ownCloud.Toolbar" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="alertDialogTheme">@style/ownCloud.AlertDialog</item>
-        <item name="android:alertDialogTheme">@style/Theme.ownCloud.Dialog</item>
-        <item name="android:colorBackground">@color/bg_default</item>
-        <item name="android:windowBackground">@color/bg_default</item>
-        <item name="colorAccent">@color/color_accent</item>
-        <item name="colorPrimary">@color/primary</item>
-        <item name="colorPrimaryDark">@color/primary</item>
-        <item name="searchViewStyle">@style/ownCloud.SearchView</item>
-        <item name="windowActionBar">false</item>
-        <item name="windowActionModeOverlay">true</item>
-        <item name="windowNoTitle">true</item>
-        <item name="textInputStyle">@style/Widget.App.TextInputLayout</item>
-        <item name="popupMenuStyle">@style/Nextcloud.Widget.PopupMenu</item>
-        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.App.BottomSheetDialog</item>
-        <item name="actionModeStyle">@style/App.ActionMode</item>
     </style>
 
     <style name="Theme.ownCloud.ToolbarBase" parent="BaseTheme.ownCloud.Toolbar">
@@ -293,7 +267,6 @@
         <item name="android:shadowColor">@color/actionbar_shadow</item>
         <item name="android:shadowRadius">1</item>
         <item name="android:shadowDy">1</item>
-        <item name="android:backgroundSplit">@drawable/split_action_bg</item>
     </style>
 
     <!-- Dialogs -->
@@ -452,10 +425,6 @@
     <style name="Nextcloud.Material.TextButton" parent="Widget.Material3.Button.TextButton.Icon">
         <item name="android:typeface">sans</item>
         <item name="android:textStyle">bold</item>
-    </style>
-
-    <style name="FullScreenExoControlButton" parent="ExoStyledControls.Button.Center">
-        <item name="android:background">@drawable/ripple</item>
     </style>
 
     <style name="Widget.Nextcloud.AppWidget.Container" parent="android:Widget">

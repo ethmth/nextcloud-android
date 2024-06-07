@@ -1,26 +1,11 @@
 /*
- * Nextcloud Android client application
+ * Nextcloud - Android Client
  *
- * @author Tobias Kaminsky
- * @author TSI-mc
- * Copyright (C) 2019 Tobias Kaminsky
- * Copyright (C) 2019 Nextcloud GmbH
- * Copyright (C) 2023 TSI-mc
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2023 TSI-mc
+ * SPDX-FileCopyrightText: 2019 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2019 Nextcloud GmbH
+ * SPDX-License-Identifier: GPL-3.0-or-later AND AGPL-3.0-or-later
  */
-
 package com.owncloud.android.ui.fragment;
 
 import android.content.BroadcastReceiver;
@@ -37,6 +22,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.nextcloud.utils.extensions.IntentExtensionsKt;
 import com.owncloud.android.BuildConfig;
 import com.owncloud.android.R;
 import com.owncloud.android.datamodel.FileDataStorageManager;
@@ -56,7 +42,6 @@ import javax.inject.Inject;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.FragmentActivity;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -210,6 +195,7 @@ public class GalleryFragment extends OCFileListFragment implements GalleryFragme
         showAllGalleryItems();
     }
 
+    @Override
     public int getColumnsCount() {
         return columnSize;
     }
@@ -315,8 +301,9 @@ public class GalleryFragment extends OCFileListFragment implements GalleryFragme
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        if (requestCode == SELECT_LOCATION_REQUEST_CODE && data != null) {
-            OCFile chosenFolder = data.getParcelableExtra(FolderPickerActivity.EXTRA_FOLDER);
+        if (requestCode == SELECT_LOCATION_REQUEST_CODE && data != null && FolderPickerActivity.EXTRA_FOLDER != null) {
+            OCFile chosenFolder = IntentExtensionsKt.getParcelableArgument(data, FolderPickerActivity.EXTRA_FOLDER, OCFile.class);
+
             if (chosenFolder != null) {
                 preferences.setLastSelectedMediaFolder(chosenFolder.getRemotePath());
                 searchAndDisplayAfterChangingFolder();

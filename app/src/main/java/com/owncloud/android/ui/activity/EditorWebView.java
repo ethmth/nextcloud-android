@@ -1,25 +1,10 @@
 /*
+ * Nextcloud - Android Client
  *
- * Nextcloud Android client application
- *
- * @author Tobias Kaminsky
- * Copyright (C) 2019 Tobias Kaminsky
- * Copyright (C) 2019 Nextcloud GmbH
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2019 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2019 Nextcloud GmbH
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
-
 package com.owncloud.android.ui.activity;
 
 import android.app.DownloadManager;
@@ -40,8 +25,7 @@ import android.widget.Toast;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.nextcloud.client.account.User;
-import com.nextcloud.client.preferences.DarkMode;
-import com.nextcloud.java.util.Optional;
+import com.nextcloud.utils.extensions.IntentExtensionsKt;
 import com.owncloud.android.R;
 import com.owncloud.android.databinding.RichdocumentsWebviewBinding;
 import com.owncloud.android.datamodel.OCFile;
@@ -49,6 +33,9 @@ import com.owncloud.android.datamodel.SyncedFolderProvider;
 import com.owncloud.android.datamodel.ThumbnailsCacheManager;
 import com.owncloud.android.utils.DisplayUtils;
 import com.owncloud.android.utils.MimeTypeUtil;
+import com.owncloud.android.utils.WebViewUtil;
+
+import java.util.Optional;
 
 import javax.inject.Inject;
 
@@ -82,6 +69,11 @@ public abstract class EditorWebView extends ExternalSiteWebView {
         this.url = loadedUrl;
 
         if (!url.isEmpty()) {
+            new WebViewUtil(getApplicationContext()).setProxyKKPlus(this.getWebView());
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+            }
             this.getWebView().loadUrl(url);
 
             new Handler().postDelayed(() -> {
@@ -144,7 +136,7 @@ public abstract class EditorWebView extends ExternalSiteWebView {
             }
         });
 
-        setFile(getIntent().getParcelableExtra(ExternalSiteWebView.EXTRA_FILE));
+        setFile(IntentExtensionsKt.getParcelableArgument(getIntent(), ExternalSiteWebView.EXTRA_FILE, OCFile.class));
 
         if (getFile() == null) {
             Toast.makeText(getApplicationContext(),

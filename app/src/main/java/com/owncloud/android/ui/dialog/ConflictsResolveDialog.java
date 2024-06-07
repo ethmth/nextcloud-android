@@ -1,24 +1,12 @@
 /*
- *   ownCloud Android client application
+ * Nextcloud - Android Client
  *
- *   @author Bartek Przybylski
- *   Copyright (C) 2012 Bartek Przybylski
- *   Copyright (C) 2015 ownCloud Inc.
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License version 2,
- *   as published by the Free Software Foundation.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-FileCopyrightText: 2023 Alper Ozturk <alper.ozturk@nextcloud.com>
+ * SPDX-FileCopyrightText: 2020-2022 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2015 ownCloud Inc.
+ * SPDX-FileCopyrightText: 2012 Bartosz Przybylski <bart.p.pl@gmail.com>
+ * SPDX-License-Identifier: GPL-2.0-only AND (AGPL-3.0-or-later OR GPL-2.0-only)
  */
-
 package com.owncloud.android.ui.dialog;
 
 import android.app.Dialog;
@@ -26,13 +14,13 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
 import android.widget.Toast;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.nextcloud.client.account.User;
 import com.nextcloud.client.di.Injectable;
+import com.nextcloud.utils.extensions.BundleExtensionsKt;
 import com.owncloud.android.R;
 import com.owncloud.android.databinding.ConflictResolveDialogBinding;
 import com.owncloud.android.datamodel.FileDataStorageManager;
@@ -57,7 +45,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
-
 
 /**
  * Dialog which will be displayed to user upon keep-in-sync file conflict.
@@ -133,13 +120,13 @@ public class ConflictsResolveDialog extends DialogFragment implements Injectable
         super.onCreate(savedInstanceState);
 
         if (savedInstanceState != null) {
-            existingFile = savedInstanceState.getParcelable(KEY_EXISTING_FILE);
-            newFile = (File) savedInstanceState.getSerializable(KEY_NEW_FILE);
-            user = savedInstanceState.getParcelable(KEY_USER);
+            existingFile = BundleExtensionsKt.getParcelableArgument(savedInstanceState, KEY_EXISTING_FILE, OCFile.class);
+            newFile = BundleExtensionsKt.getSerializableArgument(savedInstanceState, KEY_NEW_FILE, File.class);
+            user = BundleExtensionsKt.getParcelableArgument(savedInstanceState, KEY_USER, User.class);
         } else if (getArguments() != null) {
-            existingFile = getArguments().getParcelable(KEY_EXISTING_FILE);
-            newFile = (File) getArguments().getSerializable(KEY_NEW_FILE);
-            user = getArguments().getParcelable(KEY_USER);
+            existingFile = BundleExtensionsKt.getParcelableArgument(getArguments(), KEY_EXISTING_FILE, OCFile.class);
+            newFile = BundleExtensionsKt.getSerializableArgument(getArguments(), KEY_NEW_FILE, File.class);
+            user = BundleExtensionsKt.getParcelableArgument(getArguments(), KEY_USER, User.class);
         } else {
             Toast.makeText(getContext(), "Failed to create conflict dialog", Toast.LENGTH_LONG).show();
         }

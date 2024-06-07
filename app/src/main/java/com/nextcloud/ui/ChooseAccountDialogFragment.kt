@@ -4,18 +4,7 @@
  * @author Infomaniak Network SA
  * Copyright (C) 2020 Infomaniak Network SA
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
- *
- * You should have received a copy of the GNU Affero General Public
- * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
 
 package com.nextcloud.ui
@@ -35,6 +24,7 @@ import com.nextcloud.client.account.User
 import com.nextcloud.client.account.UserAccountManager
 import com.nextcloud.client.di.Injectable
 import com.nextcloud.client.network.ClientFactory
+import com.nextcloud.utils.extensions.getParcelableArgument
 import com.owncloud.android.R
 import com.owncloud.android.databinding.DialogChooseAccountBinding
 import com.owncloud.android.datamodel.FileDataStorageManager
@@ -76,7 +66,7 @@ class ChooseAccountDialogFragment :
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
-            currentUser = it.getParcelable(ARG_CURRENT_USER_PARAM)
+            currentUser = it.getParcelableArgument(ARG_CURRENT_USER_PARAM, User::class.java)
         }
     }
 

@@ -1,22 +1,13 @@
 /*
- * ownCloud Android client application
+ * Nextcloud - Android Client
  *
- * @author David A. Velasco
- * Copyright (C) 2016 ownCloud Inc.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2022 Álvaro Brey <alvaro@alvarobrey.com>
+ * SPDX-FileCopyrightText: 2019 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2016-2018 Andy Scherzinger <info@andy-scherzinger.de>
+ * SPDX-FileCopyrightText: 2016 ownCloud Inc.
+ * SPDX-FileCopyrightText: 2014 David A. Velasco <dvelasco@solidgear.es>
+ * SPDX-License-Identifier: GPL-2.0-only AND (AGPL-3.0-or-later OR GPL-2.0-only)
  */
-
 package com.owncloud.android.utils;
 
 import android.Manifest;
@@ -33,7 +24,6 @@ import com.owncloud.android.MainApp;
 import com.owncloud.android.R;
 import com.owncloud.android.datamodel.FileDataStorageManager;
 import com.owncloud.android.datamodel.OCFile;
-import com.owncloud.android.datamodel.SyncedFolder;
 import com.owncloud.android.lib.common.utils.Log_OC;
 import com.owncloud.android.lib.resources.files.model.RemoteFile;
 import com.owncloud.android.lib.resources.shares.ShareeUser;
@@ -116,6 +106,17 @@ public final class FileStorageUtils {
         // that can be in the accountName since 0.1.190B
     }
 
+    public static String getTemporalEncryptedFolderPath(String accountName) {
+        return MainApp
+            .getAppContext()
+            .getFilesDir()
+            .getAbsolutePath()
+            + File.separator
+            + accountName
+            + File.separator
+            + "temp_encrypted_folder";
+    }
+
     /**
      * Get absolute path to tmp folder inside app folder for given accountName.
      */
@@ -191,7 +192,7 @@ public final class FileStorageUtils {
 
         String relativeSubfolderPath = "";
         if (parentFile == null) {
-            Log_OC.e("AutoUpload", "Parent folder does not exists!");
+            Log_OC.e("AutoUpload", "Parent folder does not exist!");
         } else {
             relativeSubfolderPath = parentFile.getAbsolutePath();
         }
@@ -421,7 +422,13 @@ public final class FileStorageUtils {
             return false;
         }
 
-        for (File f : sourceFolder.listFiles()) {
+        File[] listFiles = sourceFolder.listFiles();
+
+        if (listFiles == null) {
+            return false;
+        }
+
+        for (File f : listFiles) {
             if (f.isDirectory()) {
                 if (!copyDirs(f, new File(targetFolder, f.getName()))) {
                     return false;
@@ -436,7 +443,13 @@ public final class FileStorageUtils {
 
     public static void deleteRecursively(File file, FileDataStorageManager storageManager) {
         if (file.isDirectory()) {
-            for (File child : file.listFiles()) {
+            File[] listFiles = file.listFiles();
+
+            if (listFiles == null) {
+                return;
+            }
+
+            for (File child : listFiles) {
                 deleteRecursively(child, storageManager);
             }
         }
@@ -447,11 +460,19 @@ public final class FileStorageUtils {
 
     public static boolean deleteRecursive(File file) {
         boolean res = true;
+
         if (file.isDirectory()) {
-            for (File c : file.listFiles()) {
+            File[] listFiles = file.listFiles();
+
+            if (listFiles == null) {
+                return true;
+            }
+
+            for (File c : listFiles) {
                 res = deleteRecursive(c) && res;
             }
         }
+
         return file.delete() && res;
     }
 

@@ -4,17 +4,7 @@
  *   @author Kilian Périsset
  *   Copyright (C) 2020 Infomaniak Network SA
  *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU Affero General Public License (GPLv3),
- *   as published by the Free Software Foundation.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
 package com.owncloud.android.ui.dialog
 
@@ -24,6 +14,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.storage.StorageManager
 import androidx.annotation.RequiresApi
+import com.nextcloud.utils.extensions.getParcelableArgument
 import com.owncloud.android.R
 import com.owncloud.android.datamodel.OCFile
 import com.owncloud.android.ui.dialog.ConfirmationDialogFragment.ConfirmationDialogFragmentListener
@@ -40,15 +31,8 @@ class SyncFileNotEnoughSpaceDialogFragment :
     private var targetFile: OCFile? = null
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        targetFile = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requireArguments().getParcelable(ARG_PASSED_FILE, OCFile::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            requireArguments().getParcelable(ARG_PASSED_FILE)
-        }
-
+        targetFile = requireArguments().getParcelableArgument(ARG_PASSED_FILE, OCFile::class.java)
         setOnConfirmationListener(this)
-
         return super.onCreateDialog(savedInstanceState)
     }
 

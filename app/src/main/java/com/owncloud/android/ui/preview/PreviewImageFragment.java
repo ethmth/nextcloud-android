@@ -1,23 +1,14 @@
 /*
- * ownCloud Android client application
+ * Nextcloud - Android Client
  *
- * @author David A. Velasco
- * @author Chris Narkiewicz
- *
- * Copyright (C) 2015 ownCloud Inc.
- * Copyright (C) 2019 Chris Narkiewicz <hello@ezaquarii.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2020-2024 Andy Scherzinger <info@andy-scherzinger.de>
+ * SPDX-FileCopyrightText: 2023 Alper Ozturk <alper.ozturk@nextcloud.com>
+ * SPDX-FileCopyrightText: 2022 Álvaro Brey <alvaro@alvarobrey.com>
+ * SPDX-FileCopyrightText: 2017-2020 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2019 Chris Narkiewicz <hello@ezaquarii.com>
+ * SPDX-FileCopyrightText: 2015 ownCloud Inc.
+ * SPDX-FileCopyrightText: 2013-2015 David A. Velasco <dvelasco@solidgear.es>
+ * SPDX-License-Identifier: GPL-2.0-only AND (AGPL-3.0-or-later OR GPL-2.0-only)
  */
 package com.owncloud.android.ui.preview;
 
@@ -54,6 +45,7 @@ import com.nextcloud.client.di.Injectable;
 import com.nextcloud.client.jobs.BackgroundJobManager;
 import com.nextcloud.client.network.ConnectivityService;
 import com.nextcloud.ui.fileactions.FileActionsBottomSheet;
+import com.nextcloud.utils.extensions.BundleExtensionsKt;
 import com.nextcloud.utils.extensions.ExtensionsKt;
 import com.owncloud.android.MainApp;
 import com.owncloud.android.R;
@@ -89,17 +81,15 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentStatePagerAdapter;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.viewpager2.adapter.FragmentStateAdapter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import pl.droidsonroids.gif.GifDrawable;
 
 import static com.owncloud.android.datamodel.ThumbnailsCacheManager.PREFIX_THUMBNAIL;
 
-
 /**
  * This fragment shows a preview of a downloaded image.
- * <p>
  * Trying to get an instance with a NULL {@link OCFile} will produce an {@link IllegalStateException}.
- * <p>
  * If the {@link OCFile} passed is not downloaded, an {@link IllegalStateException} is generated on instantiation too.
  */
 public class PreviewImageFragment extends FileFragment implements Injectable {
@@ -138,7 +128,7 @@ public class PreviewImageFragment extends FileFragment implements Injectable {
      * This method hides to client objects the need of doing the construction in two steps.
      *
      * @param imageFile             An {@link OCFile} to preview as an image in the fragment
-     * @param ignoreFirstSavedState Flag to work around an unexpected behaviour of {@link FragmentStatePagerAdapter} ;
+     * @param ignoreFirstSavedState Flag to work around an unexpected behaviour of {@link FragmentStateAdapter} ;
      *                                                           TODO better solution
      */
     public static PreviewImageFragment newInstance(@NonNull OCFile imageFile,
@@ -175,7 +165,7 @@ public class PreviewImageFragment extends FileFragment implements Injectable {
             throw new IllegalArgumentException("Arguments may not be null!");
         }
 
-        setFile(args.getParcelable(ARG_FILE));
+        setFile(BundleExtensionsKt.getParcelableArgument(args, ARG_FILE, OCFile.class));
         // TODO better in super, but needs to check ALL the class extending FileFragment;
         // not right now
 
@@ -242,9 +232,18 @@ public class PreviewImageFragment extends FileFragment implements Injectable {
         super.onActivityCreated(savedInstanceState);
         if (savedInstanceState != null) {
             if (!ignoreFirstSavedState) {
-                OCFile file = savedInstanceState.getParcelable(EXTRA_FILE);
+                OCFile file = BundleExtensionsKt.getParcelableArgument(savedInstanceState, EXTRA_FILE, OCFile.class);
+                if (file == null) {
+                    return;
+                }
+
                 setFile(file);
-                binding.image.setScale(Math.min(binding.image.getMaximumScale(), savedInstanceState.getFloat(EXTRA_ZOOM)));
+
+                try {
+                    binding.image.setScale(Math.min(binding.image.getMaximumScale(), savedInstanceState.getFloat(EXTRA_ZOOM)));
+                } catch (IllegalArgumentException e) {
+                    Log_OC.d(TAG, "Error caught at setScale: " + e);
+                }
             } else {
                 ignoreFirstSavedState = false;
             }

@@ -1,27 +1,16 @@
 /*
- * Nextcloud Android client application
+ * Nextcloud - Android Client
  *
- * @author Chris Narkiewicz
- * Copyright (C) 2020 Chris Narkiewicz <hello@ezaquarii.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2020 Chris Narkiewicz <hello@ezaquarii.com>
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
 package com.nextcloud.client.jobs
 
 import androidx.lifecycle.LiveData
+import androidx.work.ListenableWorker
 import com.nextcloud.client.account.User
 import com.owncloud.android.datamodel.OCFile
+import com.owncloud.android.operations.DownloadType
 
 /**
  * This interface allows to control, schedule and monitor all application
@@ -34,6 +23,10 @@ interface BackgroundJobManager {
      * Information about all application background jobs.
      */
     val jobs: LiveData<List<JobInfo>>
+
+    fun logStartOfWorker(workerName: String?)
+
+    fun logEndOfWorker(workerName: String?, result: ListenableWorker.Result)
 
     /**
      * Start content observer job that monitors changes in media folders
@@ -126,8 +119,17 @@ interface BackgroundJobManager {
 
     fun startImmediateFilesExportJob(files: Collection<OCFile>): LiveData<JobInfo?>
 
-    fun schedulePeriodicFilesSyncJob()
-    fun startImmediateFilesSyncJob(skipCustomFolders: Boolean = false, overridePowerSaving: Boolean = false)
+    fun schedulePeriodicFilesSyncJob(syncedFolderID: Long)
+
+    /**
+     * Immediately start File Sync job for given syncFolderID.
+     */
+    fun startImmediateFilesSyncJob(
+        syncedFolderID: Long,
+        overridePowerSaving: Boolean = false,
+        changedFiles: Array<String> = arrayOf<String>()
+    )
+
     fun scheduleOfflineSync()
 
     fun scheduleMediaFoldersDetectionJob()
@@ -138,6 +140,22 @@ interface BackgroundJobManager {
     fun startFilesUploadJob(user: User)
     fun getFileUploads(user: User): LiveData<List<JobInfo>>
     fun cancelFilesUploadJob(user: User)
+    fun isStartFileUploadJobScheduled(user: User): Boolean
+
+    fun cancelFilesDownloadJob(user: User, fileId: Long)
+
+    fun isStartFileDownloadJobScheduled(user: User, fileId: Long): Boolean
+
+    @Suppress("LongParameterList")
+    fun startFileDownloadJob(
+        user: User,
+        file: OCFile,
+        behaviour: String,
+        downloadType: DownloadType?,
+        activityName: String,
+        packageName: String,
+        conflictUploadId: Long?
+    )
 
     fun startPdfGenerateAndUploadWork(user: User, uploadFolder: String, imagePaths: List<String>, pdfPath: String)
 
@@ -149,4 +167,5 @@ interface BackgroundJobManager {
     fun cancelAllJobs()
     fun schedulePeriodicHealthStatus()
     fun startHealthStatus()
+    fun bothFilesSyncJobsRunning(syncedFolderID: Long): Boolean
 }

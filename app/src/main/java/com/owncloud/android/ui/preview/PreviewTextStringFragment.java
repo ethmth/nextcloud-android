@@ -1,25 +1,10 @@
 /*
+ * Nextcloud - Android Client
  *
- * Nextcloud Android client application
- *
- * @author Tobias Kaminsky
- * Copyright (C) 2019 Tobias Kaminsky
- * Copyright (C) 2019 Nextcloud GmbH
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2019 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2019 Nextcloud GmbH
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
-
 package com.owncloud.android.ui.preview;
 
 import android.os.Bundle;
@@ -51,6 +36,8 @@ public class PreviewTextStringFragment extends PreviewTextFragment {
 
     @Inject UserAccountManager accountManager;
     @Inject ViewThemeUtils viewThemeUtils;
+
+    private boolean isEditorWebviewLaunched = false;
 
     /**
      * Creates an empty fragment for previews.
@@ -107,6 +94,16 @@ public class PreviewTextStringFragment extends PreviewTextFragment {
         return view;
     }
 
+    @Override
+    public void onStart() {
+        if (isEditorWebviewLaunched && containerActivity instanceof FileDisplayActivity fileDisplayActivity) {
+            fileDisplayActivity.getSupportFragmentManager().popBackStack();
+            fileDisplayActivity.onRefresh();
+        }
+
+        super.onStart();
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -146,6 +143,7 @@ public class PreviewTextStringFragment extends PreviewTextFragment {
                 containerActivity.getFileOperationsHelper().openRichWorkspaceWithTextEditor(getFile(),
                                                                                             url,
                                                                                             getContext());
+                isEditorWebviewLaunched = true;
             } else {
                 DisplayUtils.showSnackMessage(getView(), "Error");
             }

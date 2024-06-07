@@ -1,28 +1,17 @@
 /*
- * Nextcloud Android client application
+ * Nextcloud - Android Client
  *
- * @author Álvaro Brey Vilas
- * Copyright (C) 2022 Álvaro Brey Vilas
- * Copyright (C) 2022 Nextcloud GmbH
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2022 Álvaro Brey Vilas
+ * SPDX-FileCopyrightText: 2022 Nextcloud GmbH
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 package com.owncloud.android.files
 
 import androidx.test.core.app.launchActivity
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.nextcloud.client.account.User
+import com.nextcloud.client.jobs.download.FileDownloadWorker
+import com.nextcloud.client.jobs.upload.FileUploadHelper
 import com.nextcloud.test.TestActivity
 import com.nextcloud.utils.EditorUtils
 import com.owncloud.android.AbstractIT
@@ -30,8 +19,6 @@ import com.owncloud.android.R
 import com.owncloud.android.datamodel.ArbitraryDataProvider
 import com.owncloud.android.datamodel.FileDataStorageManager
 import com.owncloud.android.datamodel.OCFile
-import com.owncloud.android.files.services.FileDownloader
-import com.owncloud.android.files.services.FileUploader
 import com.owncloud.android.lib.resources.files.model.FileLockType
 import com.owncloud.android.lib.resources.status.CapabilityBooleanType
 import com.owncloud.android.lib.resources.status.OCCapability
@@ -59,10 +46,10 @@ class FileMenuFilterIT : AbstractIT() {
     private lateinit var mockStorageManager: FileDataStorageManager
 
     @MockK
-    private lateinit var mockFileUploaderBinder: FileUploader.FileUploaderBinder
+    private lateinit var mockFileUploaderBinder: FileUploadHelper
 
     @MockK
-    private lateinit var mockFileDownloaderBinder: FileDownloader.FileDownloaderBinder
+    private lateinit var mockFileDownloadProgressListener: FileDownloadWorker.FileDownloadProgressListener
 
     @MockK
     private lateinit var mockOperationsServiceBinder: OperationsService.OperationsServiceBinder
@@ -76,9 +63,9 @@ class FileMenuFilterIT : AbstractIT() {
     fun setup() {
         MockKAnnotations.init(this)
         every { mockFileUploaderBinder.isUploading(any(), any()) } returns false
-        every { mockComponentsGetter.fileUploaderBinder } returns mockFileUploaderBinder
-        every { mockFileDownloaderBinder.isDownloading(any(), any()) } returns false
-        every { mockComponentsGetter.fileDownloaderBinder } returns mockFileDownloaderBinder
+        every { mockComponentsGetter.fileUploaderHelper } returns mockFileUploaderBinder
+        every { mockFileDownloadProgressListener.isDownloading(any(), any()) } returns false
+        every { mockComponentsGetter.fileDownloadProgressListener } returns mockFileDownloadProgressListener
         every { mockOperationsServiceBinder.isSynchronizing(any(), any()) } returns false
         every { mockComponentsGetter.operationsServiceBinder } returns mockOperationsServiceBinder
         every { mockStorageManager.getFileById(any()) } returns OCFile("/")

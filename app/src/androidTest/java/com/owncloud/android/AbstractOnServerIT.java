@@ -1,3 +1,9 @@
+/*
+ * Nextcloud - Android Client
+ *
+ * SPDX-FileCopyrightText: 2020 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
+ */
 package com.owncloud.android;
 
 import android.accounts.Account;
@@ -13,13 +19,12 @@ import com.nextcloud.client.account.UserAccountManager;
 import com.nextcloud.client.account.UserAccountManagerImpl;
 import com.nextcloud.client.device.BatteryStatus;
 import com.nextcloud.client.device.PowerManagementService;
+import com.nextcloud.client.jobs.upload.FileUploadWorker;
 import com.nextcloud.client.network.Connectivity;
 import com.nextcloud.client.network.ConnectivityService;
-import com.nextcloud.java.util.Optional;
 import com.owncloud.android.datamodel.OCFile;
 import com.owncloud.android.datamodel.UploadsStorageManager;
 import com.owncloud.android.db.OCUpload;
-import com.owncloud.android.files.services.FileUploader;
 import com.owncloud.android.files.services.NameCollisionPolicy;
 import com.owncloud.android.lib.common.OwnCloudClient;
 import com.owncloud.android.lib.common.OwnCloudClientFactory;
@@ -40,6 +45,7 @@ import org.junit.BeforeClass;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Optional;
 
 import androidx.annotation.NonNull;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -47,11 +53,9 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-
 /**
- * Common base for all integration tests
+ * Common base for all integration tests.
  */
-
 public abstract class AbstractOnServerIT extends AbstractIT {
     @BeforeClass
     public static void beforeAll() {
@@ -94,21 +98,19 @@ public abstract class AbstractOnServerIT extends AbstractIT {
             user = optionalUser.orElseThrow(IllegalAccessError::new);
 
             client = OwnCloudClientFactory.createOwnCloudClient(account, targetContext);
+            nextcloudClient = OwnCloudClientFactory.createNextcloudClient(user, targetContext);
 
             createDummyFiles();
 
             waitForServer(client, baseUrl);
 
-            deleteAllFilesOnServer(); // makes sure that no file/folder is in root
+            // deleteAllFilesOnServer(); // makes sure that no file/folder is in root
 
-        } catch (OperationCanceledException e) {
-            e.printStackTrace();
-        } catch (AuthenticatorException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (AccountUtils.AccountNotFoundException e) {
-            e.printStackTrace();
+        } catch (OperationCanceledException |
+                 IOException |
+                 AccountUtils.AccountNotFoundException |
+                 AuthenticatorException e) {
+            throw new RuntimeException("Error setting up clients", e);
         }
     }
 
@@ -144,7 +146,7 @@ public abstract class AbstractOnServerIT extends AbstractIT {
                     removeResult = new RemoveFileRemoteOperation(remoteFile.getRemotePath())
                         .execute(client)
                         .isSuccess();
-                    
+
                     if (removeResult) {
                         break;
                     }
@@ -180,7 +182,7 @@ public abstract class AbstractOnServerIT extends AbstractIT {
     }
 
     public void uploadOCUpload(OCUpload ocUpload) {
-        uploadOCUpload(ocUpload, FileUploader.LOCAL_BEHAVIOUR_COPY);
+        uploadOCUpload(ocUpload, FileUploadWorker.LOCAL_BEHAVIOUR_COPY);
     }
 
     public void uploadOCUpload(OCUpload ocUpload, int localBehaviour) {
@@ -255,8 +257,8 @@ public abstract class AbstractOnServerIT extends AbstractIT {
         assertNotNull(uploadedFile.getRemoteId());
         assertNotNull(uploadedFile.getPermissions());
 
-        if (localBehaviour == FileUploader.LOCAL_BEHAVIOUR_COPY ||
-            localBehaviour == FileUploader.LOCAL_BEHAVIOUR_MOVE) {
+        if (localBehaviour == FileUploadWorker.LOCAL_BEHAVIOUR_COPY ||
+            localBehaviour == FileUploadWorker.LOCAL_BEHAVIOUR_MOVE) {
             assertTrue(new File(uploadedFile.getStoragePath()).exists());
         }
     }

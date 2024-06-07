@@ -1,37 +1,24 @@
 /*
- * ownCloud Android client application
- * <p>
- * @author TSI-mc
- * Copyright (C) 2016 ownCloud Inc.
- * Copyright (C) 2023 TSI-mc
- * <p>
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation.
- * <p>
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * <p>
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Nextcloud - Android Client
+ *
+ * SPDX-FileCopyrightText: 2023 TSI-mc
+ * SPDX-FileCopyrightText: 2023 alperozturk <alper.ozturk@nextcloud.com>
+ * SPDX-FileCopyrightText: 2022 Álvaro Brey <alvaro@alvarobrey.com>
+ * SPDX-FileCopyrightText: 2018-2022 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2016 Andy Scherzinger <info@andy-scherzinger.de>
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
-
 package com.owncloud.android.utils;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.net.Uri;
-import android.util.DisplayMetrics;
-import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import com.nextcloud.android.common.ui.theme.utils.ColorRole;
 import com.owncloud.android.R;
 import com.owncloud.android.datamodel.OCFile;
-import com.owncloud.android.lib.common.network.WebdavEntry;
 import com.owncloud.android.lib.resources.files.model.ServerFileInterface;
 import com.owncloud.android.utils.theme.ViewThemeUtils;
 
@@ -45,7 +32,6 @@ import java.util.Locale;
 import java.util.Map;
 
 import androidx.core.content.ContextCompat;
-import androidx.core.graphics.drawable.DrawableCompat;
 
 /**
  * <p>Helper class for detecting the right icon for a file or folder,

@@ -1,30 +1,14 @@
 /*
- *   ownCloud Android client application
+ * Nextcloud - Android Client
  *
- *   @author David A. Velasco
- *   Copyright (C) 2014 ownCloud Inc.
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License version 2,
- *   as published by the Free Software Foundation.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-FileCopyrightText: 2023 Alper Ozturk <alper.ozturk@nextcloud.com>
+ * SPDX-FileCopyrightText: 2022 Andy Scherzinger <info@andy-scherzinger.de>
+ * SPDX-FileCopyrightText: 2017-2022 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2014 ownCloud Inc.
+ * SPDX-FileCopyrightText: 2014 David A. Velasco <dvelasco@solidgear.es>
+ * SPDX-License-Identifier: GPL-2.0-only AND (AGPL-3.0-or-later OR GPL-2.0-only)
  */
-
 package com.owncloud.android.ui.dialog;
-
-/*
- *  Dialog to input a new name for an {@link OCFile} being renamed.
- *
- *  Triggers the rename operation.
- */
 
 import android.app.Dialog;
 import android.content.DialogInterface;
@@ -39,6 +23,7 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.common.collect.Sets;
 import com.nextcloud.client.di.Injectable;
+import com.nextcloud.utils.extensions.BundleExtensionsKt;
 import com.owncloud.android.R;
 import com.owncloud.android.databinding.EditBoxDialogBinding;
 import com.owncloud.android.datamodel.FileDataStorageManager;
@@ -58,11 +43,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
 
-
 /**
- * Dialog to input a new name for a file or folder to rename.
- * <p>
- * Triggers the rename operation when name is confirmed.
+ *  Dialog to input a new name for an {@link OCFile} being renamed.
+ *  Triggers the rename operation.
  */
 public class RenameFileDialogFragment
     extends DialogFragment implements DialogInterface.OnClickListener, TextWatcher, Injectable {
@@ -109,7 +92,7 @@ public class RenameFileDialogFragment
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        mTargetFile = requireArguments().getParcelable(ARG_TARGET_FILE);
+        mTargetFile = BundleExtensionsKt.getParcelableArgument(requireArguments(), ARG_TARGET_FILE, OCFile.class);
 
         // Inflate the layout for the dialog
         LayoutInflater inflater = requireActivity().getLayoutInflater();
@@ -124,7 +107,7 @@ public class RenameFileDialogFragment
         int selectionEnd = extensionStart >= 0 ? extensionStart : currentName.length();
         binding.userInput.setSelection(0, selectionEnd);
 
-        OCFile parentFolder = requireArguments().getParcelable(ARG_PARENT_FOLDER);
+        OCFile parentFolder = BundleExtensionsKt.getParcelableArgument(getArguments(), ARG_PARENT_FOLDER, OCFile.class);
         List<OCFile> folderContent = fileDataStorageManager.getFolderContent(parentFolder, false);
         fileNames = Sets.newHashSetWithExpectedSize(folderContent.size());
 

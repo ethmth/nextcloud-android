@@ -1,22 +1,9 @@
 /*
- * Nextcloud Android client application
+ * Nextcloud - Android Client
  *
- * @author Tobias Kaminsky
- * Copyright (C) 2020 Tobias Kaminsky
- * Copyright (C) 2020 Nextcloud GmbH
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2020 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2020 Nextcloud GmbH
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
 package com.owncloud.android.ui.fragment
 
@@ -47,6 +34,7 @@ import com.owncloud.android.datamodel.OCFile
 import com.owncloud.android.lib.common.SearchResultEntry
 import com.owncloud.android.lib.common.utils.Log_OC
 import com.owncloud.android.ui.activity.FileDisplayActivity
+import com.owncloud.android.ui.adapter.UnifiedSearchItemViewHolder
 import com.owncloud.android.ui.adapter.UnifiedSearchListAdapter
 import com.owncloud.android.ui.fragment.util.PairMediatorLiveData
 import com.owncloud.android.ui.interfaces.UnifiedSearchListInterface
@@ -63,7 +51,12 @@ import javax.inject.Inject
  * Starts query to all capable unified search providers and displays them Opens result in our app, redirect to other
  * apps, if installed, or opens browser
  */
-class UnifiedSearchFragment : Fragment(), Injectable, UnifiedSearchListInterface, SearchView.OnQueryTextListener {
+class UnifiedSearchFragment :
+    Fragment(),
+    Injectable,
+    UnifiedSearchListInterface,
+    SearchView.OnQueryTextListener,
+    UnifiedSearchItemViewHolder.FilesAction {
     private lateinit var adapter: UnifiedSearchListAdapter
     private var _binding: ListFragmentBinding? = null
     private val binding get() = _binding!!
@@ -105,6 +98,8 @@ class UnifiedSearchFragment : Fragment(), Injectable, UnifiedSearchListInterface
     lateinit var viewThemeUtils: ViewThemeUtils
 
     private var listOfHiddenFiles = ArrayList<String>()
+
+    private var showMoreActions = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -200,13 +195,28 @@ class UnifiedSearchFragment : Fragment(), Injectable, UnifiedSearchListInterface
             startActivity(browserIntent)
         }
         vm.file.observe(this) {
-            showFile(it)
+            showFile(it, showMoreActions)
         }
     }
 
     private fun setUpBinding() {
         binding.swipeContainingList.setOnRefreshListener {
             vm.initialQuery()
+        }
+    }
+
+    private fun showFile(file: OCFile, showFileActions: Boolean) {
+        activity.let {
+            if (activity is FileDisplayActivity) {
+                val fda = activity as FileDisplayActivity
+                fda.file = file
+
+                if (showFileActions) {
+                    fda.showFileActions(file)
+                } else {
+                    fda.showFile(file, "")
+                }
+            }
         }
     }
 
@@ -222,6 +232,7 @@ class UnifiedSearchFragment : Fragment(), Injectable, UnifiedSearchListInterface
         adapter = UnifiedSearchListAdapter(
             storageManager,
             this,
+            this,
             currentAccountProvider.user,
             clientFactory,
             requireContext(),
@@ -233,14 +244,8 @@ class UnifiedSearchFragment : Fragment(), Injectable, UnifiedSearchListInterface
         binding.listRoot.adapter = adapter
     }
 
-    private fun showFile(file: OCFile) {
-        (activity as? FileDisplayActivity)?.let {
-            it.file = file
-            it.showFile("")
-        }
-    }
-
     override fun onSearchResultClicked(searchResultEntry: SearchResultEntry) {
+        showMoreActions = false
         vm.openResult(searchResultEntry)
     }
 
@@ -276,5 +281,10 @@ class UnifiedSearchFragment : Fragment(), Injectable, UnifiedSearchListInterface
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    override fun showFilesAction(searchResultEntry: SearchResultEntry) {
+        showMoreActions = true
+        vm.openResult(searchResultEntry)
     }
 }

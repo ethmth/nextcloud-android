@@ -1,25 +1,10 @@
 /*
- * Nextcloud Android client application
+ * Nextcloud - Android Client
  *
- * @author Andy Scherzinger
- * @author Mario Danic
- * @author Chris Narkiewicz
- * Copyright (C) 2017 Andy Scherzinger
- * Copyright (C) 2017 Mario Danic
- * Copyright (C) 2020 Chris Narkiewicz <hello@ezaquarii.com>
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2020 Chris Narkiewicz <hello@ezaquarii.com>
+ * SPDX-FileCopyrightText: 2017 Mario Danic <mario@lovelyhq.com>
+ * SPDX-FileCopyrightText: 2017 Nextcloud GmbH
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
 package com.owncloud.android.ui.activity
 
@@ -34,7 +19,6 @@ import com.nextcloud.client.account.User
 import com.nextcloud.client.account.UserAccountManager
 import com.nextcloud.client.jobs.NotificationWork
 import com.nextcloud.client.network.ClientFactory.CreationException
-import com.nextcloud.java.util.Optional
 import com.owncloud.android.R
 import com.owncloud.android.databinding.NotificationsLayoutBinding
 import com.owncloud.android.datamodel.ArbitraryDataProvider
@@ -49,13 +33,14 @@ import com.owncloud.android.ui.asynctasks.DeleteAllNotificationsTask
 import com.owncloud.android.ui.notifications.NotificationsContract
 import com.owncloud.android.utils.DisplayUtils
 import com.owncloud.android.utils.PushUtils
+import java.util.Optional
 
 /**
  * Activity displaying all server side stored notification items.
  */
 class NotificationsActivity : DrawerActivity(), NotificationsContract.View {
 
-    private lateinit var binding: NotificationsLayoutBinding
+    lateinit var binding: NotificationsLayoutBinding
 
     private var adapter: NotificationListAdapter? = null
     private var snackbar: Snackbar? = null

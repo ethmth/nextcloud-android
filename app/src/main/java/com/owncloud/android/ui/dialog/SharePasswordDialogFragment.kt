@@ -1,28 +1,18 @@
 /*
- *   ownCloud Android client application
+ * Nextcloud - Android Client
  *
- *   @author masensio
- *   @author Andy Scherzinger
- *   Copyright (C) 2015 ownCloud GmbH.
- *   Copyright (C) 2018 Andy Scherzinger
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License version 2,
- *   as published by the Free Software Foundation.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2023 Alper Ozturk <alper.ozturk@nextcloud.com>
+ * SPDX-FileCopyrightText: 2022 Álvaro Brey <alvaro@alvarobrey.com>
+ * SPDX-FileCopyrightText: 2017-2020 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2018 Andy Scherzinger <info@andy-scherzinger.de>
+ * SPDX-FileCopyrightText: 2015 María Asensio Valverde <masensio@solidgear.es>
+ * SPDX-FileCopyrightText: 2015 ownCloud Inc.
+ * SPDX-License-Identifier: GPL-2.0-only AND (AGPL-3.0-or-later OR GPL-2.0-only)
  */
 package com.owncloud.android.ui.dialog
 
 import android.app.Dialog
 import android.content.DialogInterface
-import android.os.Build
 import android.os.Bundle
 import android.text.TextUtils
 import androidx.appcompat.app.AlertDialog
@@ -31,6 +21,7 @@ import androidx.fragment.app.DialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.nextcloud.client.di.Injectable
+import com.nextcloud.utils.extensions.getParcelableArgument
 import com.owncloud.android.R
 import com.owncloud.android.databinding.PasswordDialogBinding
 import com.owncloud.android.datamodel.OCFile
@@ -110,19 +101,8 @@ class SharePasswordDialogFragment : DialogFragment(), Injectable {
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        file = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requireArguments().getParcelable(ARG_FILE, OCFile::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            requireArguments().getParcelable(ARG_FILE)
-        }
-
-        share = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requireArguments().getParcelable(ARG_SHARE, OCShare::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            requireArguments().getParcelable(ARG_SHARE)
-        }
+        file = requireArguments().getParcelableArgument(ARG_FILE, OCFile::class.java)
+        share = requireArguments().getParcelableArgument(ARG_SHARE, OCShare::class.java)
 
         createShare = requireArguments().getBoolean(ARG_CREATE_SHARE, false)
         askForPassword = requireArguments().getBoolean(ARG_ASK_FOR_PASSWORD, false)

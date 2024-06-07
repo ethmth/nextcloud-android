@@ -1,22 +1,9 @@
 /*
- * Nextcloud Android client application
+ * Nextcloud - Android Client
  *
- * @author ZetaTom
- * Copyright (C) 2023 ZetaTom
- * Copyright (C) 2023 Nextcloud GmbH
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2023 ZetaTom
+ * SPDX-FileCopyrightText: 2023 Nextcloud GmbH
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
 package com.nextcloud.ui
 
@@ -37,6 +24,7 @@ import com.nextcloud.android.common.ui.theme.utils.ColorRole
 import com.nextcloud.client.NominatimClient
 import com.nextcloud.client.account.User
 import com.nextcloud.client.di.Injectable
+import com.nextcloud.utils.extensions.getParcelableArgument
 import com.owncloud.android.MainApp
 import com.owncloud.android.R
 import com.owncloud.android.databinding.PreviewImageDetailsFragmentBinding
@@ -95,13 +83,13 @@ class ImageDetailFragment : Fragment(), Injectable {
         )
 
         val arguments = arguments ?: throw IllegalStateException("arguments are mandatory")
-        file = arguments.getParcelable(ARG_FILE)!!
-        user = arguments.getParcelable(ARG_USER)!!
+        file = arguments.getParcelableArgument(ARG_FILE, OCFile::class.java)!!
+        user = arguments.getParcelableArgument(ARG_USER, User::class.java)!!
 
         if (savedInstanceState != null) {
-            file = savedInstanceState.getParcelable(ARG_FILE)!!
-            user = savedInstanceState.getParcelable(ARG_USER)!!
-            metadata = savedInstanceState.getParcelable(ARG_METADATA)!!
+            file = savedInstanceState.getParcelableArgument(ARG_FILE, OCFile::class.java)!!
+            user = savedInstanceState.getParcelableArgument(ARG_USER, User::class.java)!!
+            metadata = savedInstanceState.getParcelableArgument(ARG_METADATA, ImageMetadata::class.java)!!
         }
 
         nominatimClient = NominatimClient(

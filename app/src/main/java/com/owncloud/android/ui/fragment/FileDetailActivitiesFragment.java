@@ -1,26 +1,10 @@
 /*
- * Nextcloud Android client application
+ * Nextcloud - Android Client
  *
- * @author Andy Scherzinger
- * @author Chris Narkiewicz
- *
- * Copyright (C) 2018 Andy Scherzinger
- * Copyright (C) 2019 Chris Narkiewicz <hello@ezaquarii.com>
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
- * License as published by the Free Software Foundation; either
- * version 3 of the License, or any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU AFFERO GENERAL PUBLIC LICENSE for more details.
- *
- * You should have received a copy of the GNU Affero General Public
- * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2019 Chris Narkiewicz <hello@ezaquarii.com>
+ * SPDX-FileCopyrightText: 2018 Andy Scherzinger <info@andy-scherzinger.de>
+ * SPDX-License-Identifier: AGPL-3.0-or-later OR GPL-2.0-only
  */
-
 package com.owncloud.android.ui.fragment;
 
 import android.content.ContentResolver;
@@ -38,6 +22,7 @@ import com.nextcloud.client.account.UserAccountManager;
 import com.nextcloud.client.di.Injectable;
 import com.nextcloud.client.network.ClientFactory;
 import com.nextcloud.common.NextcloudClient;
+import com.nextcloud.utils.extensions.BundleExtensionsKt;
 import com.owncloud.android.R;
 import com.owncloud.android.databinding.FileDetailsActivitiesFragmentBinding;
 import com.owncloud.android.datamodel.FileDataStorageManager;
@@ -100,12 +85,13 @@ public class FileDetailActivitiesFragment extends Fragment implements
 
     private int lastGiven;
     private boolean isLoadingActivities;
+    private boolean isDataFetched = false;
 
     private boolean restoreFileVersionSupported;
     private FileOperationsHelper operationsHelper;
     private VersionListInterface.CommentCallback callback;
 
-    private FileDetailsActivitiesFragmentBinding binding;
+    FileDetailsActivitiesFragmentBinding binding;
 
     @Inject UserAccountManager accountManager;
     @Inject ClientFactory clientFactory;
@@ -130,12 +116,12 @@ public class FileDetailActivitiesFragment extends Fragment implements
         if (arguments == null) {
             throw new IllegalStateException("arguments are mandatory");
         }
-        file = arguments.getParcelable(ARG_FILE);
-        user = arguments.getParcelable(ARG_USER);
+        file = BundleExtensionsKt.getParcelableArgument(arguments, ARG_FILE, OCFile.class);
+        user = BundleExtensionsKt.getParcelableArgument(arguments, ARG_USER, User.class);
 
         if (savedInstanceState != null) {
-            file = savedInstanceState.getParcelable(ARG_FILE);
-            user = savedInstanceState.getParcelable(ARG_USER);
+            file = BundleExtensionsKt.getParcelableArgument(savedInstanceState, ARG_FILE, OCFile.class);
+            user = BundleExtensionsKt.getParcelableArgument(savedInstanceState, ARG_USER, User.class);
         }
 
         binding = FileDetailsActivitiesFragmentBinding.inflate(inflater, container, false);
@@ -146,6 +132,7 @@ public class FileDetailActivitiesFragment extends Fragment implements
         viewThemeUtils.androidx.themeSwipeRefreshLayout(binding.swipeContainingEmpty);
         viewThemeUtils.androidx.themeSwipeRefreshLayout(binding.swipeContainingList);
 
+        isLoadingActivities = true;
         fetchAndSetData(-1);
 
         binding.swipeContainingList.setOnRefreshListener(() -> {
@@ -196,7 +183,7 @@ public class FileDetailActivitiesFragment extends Fragment implements
 
         String trimmedComment = commentField.toString().trim();
 
-        if (trimmedComment.length() > 0) {
+        if (trimmedComment.length() > 0 && ownCloudClient != null && isDataFetched) {
             new SubmitCommentTask(trimmedComment, file.getLocalId(), callback, ownCloudClient).execute();
         }
     }
@@ -338,6 +325,8 @@ public class FileDetailActivitiesFragment extends Fragment implements
                             populateList(activitiesAndVersions, lastGiven == -1);
                         }
                     });
+
+                    isDataFetched = true;
                 } else {
                     Log_OC.d(TAG, result.getLogMessage());
                     // show error
@@ -352,10 +341,13 @@ public class FileDetailActivitiesFragment extends Fragment implements
                             isLoadingActivities = false;
                         }
                     });
+
+                    isDataFetched = false;
                 }
 
                 hideRefreshLayoutLoader(activity);
             } catch (ClientFactory.CreationException e) {
+                isDataFetched = false;
                 Log_OC.e(TAG, "Error fetching file details activities", e);
             }
         });

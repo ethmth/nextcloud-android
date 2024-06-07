@@ -1,21 +1,12 @@
 /*
- *   ownCloud Android client application
+ * Nextcloud - Android Client
  *
- *   @author David A. Velasco
- *   Copyright (C) 2015 ownCloud Inc.
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License version 2,
- *   as published by the Free Software Foundation.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-FileCopyrightText: 2023 Alper Ozturk <alper.ozturk@nextcloud.com>
+ * SPDX-FileCopyrightText: 2022 Álvaro Brey <alvaro@alvarobrey.com>
+ * SPDX-FileCopyrightText: 2018 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2015 David A. Velasco <dvelasco@solidgear.es>
+ * SPDX-FileCopyrightText: 2015 ownCloud Inc.
+ * SPDX-License-Identifier: GPL-2.0-only AND (AGPL-3.0-or-later OR GPL-2.0-only)
  */
 package com.owncloud.android.ui.dialog
 
@@ -33,6 +24,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.common.collect.Sets
 import com.nextcloud.client.di.Injectable
+import com.nextcloud.utils.extensions.getParcelableArgument
 import com.owncloud.android.R
 import com.owncloud.android.databinding.EditBoxDialogBinding
 import com.owncloud.android.datamodel.FileDataStorageManager
@@ -92,7 +84,7 @@ class CreateFolderDialogFragment : DialogFragment(), DialogInterface.OnClickList
 
     @Suppress("EmptyFunctionBlock")
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        mParentFolder = arguments?.getParcelable(ARG_PARENT_FOLDER)
+        mParentFolder = arguments?.getParcelableArgument(ARG_PARENT_FOLDER, OCFile::class.java)
 
         // Inflate the layout for the dialog
         val inflater = requireActivity().layoutInflater
@@ -103,7 +95,7 @@ class CreateFolderDialogFragment : DialogFragment(), DialogInterface.OnClickList
         binding.userInput.setText("")
         viewThemeUtils?.material?.colorTextInputLayout(binding.userInputContainer)
 
-        val parentFolder = requireArguments().getParcelable<OCFile>(ARG_PARENT_FOLDER)
+        val parentFolder = requireArguments().getParcelableArgument(ARG_PARENT_FOLDER, OCFile::class.java)
 
         val folderContent = fileDataStorageManager!!.getFolderContent(parentFolder, false)
         val fileNames: MutableSet<String> = Sets.newHashSetWithExpectedSize(folderContent.size)

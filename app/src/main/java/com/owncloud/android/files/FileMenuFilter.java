@@ -1,27 +1,16 @@
 /*
- * ownCloud Android client application
+ * Nextcloud - Android Client
  *
- * @author David A. Velasco
- * @author Andy Scherzinger
- * @author Álvaro Brey
- * Copyright (C) 2015 ownCloud Inc.
- * Copyright (C) 2018 Andy Scherzinger
- * Copyright (C) 2022 Álvaro Brey Vilas
- * Copyright (C) 2022 Nextcloud GmbH
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2,
- * as published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: 2023 Alper Ozturk <alper.ozturk@nextcloud.com>
+ * SPDX-FileCopyrightText: 2019-2023 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2022 Álvaro Brey Vilas <alvaro@alvarobrey.com>
+ * SPDX-FileCopyrightText: 2020 Andy Scherzinger <info@andy-scherzinger.de>
+ * SPDX-FileCopyrightText: 2018 Mario Danic <mario@lovelyhq.com>
+ * SPDX-FileCopyrightText: 2016 ownCloud Inc.
+ * SPDX-FileCopyrightText: 2014-2016 David A. Velasco <dvelasco@solidgear.es>
+ * SPDX-FileCopyrightText: 2012 Bartosz Przybylski <bart.p.pl@gmail.com>
+ * SPDX-License-Identifier: GPL-2.0-only AND (AGPL-3.0-or-later OR GPL-2.0-only)
  */
-
 package com.owncloud.android.files;
 
 import android.accounts.AccountManager;
@@ -31,12 +20,12 @@ import android.view.Menu;
 import com.nextcloud.android.files.FileLockingHelper;
 import com.nextcloud.client.account.User;
 import com.nextcloud.client.editimage.EditImageActivity;
+import com.nextcloud.client.jobs.download.FileDownloadHelper;
+import com.nextcloud.client.jobs.upload.FileUploadHelper;
 import com.nextcloud.utils.EditorUtils;
 import com.owncloud.android.R;
 import com.owncloud.android.datamodel.FileDataStorageManager;
 import com.owncloud.android.datamodel.OCFile;
-import com.owncloud.android.files.services.FileDownloader.FileDownloaderBinder;
-import com.owncloud.android.files.services.FileUploader.FileUploaderBinder;
 import com.owncloud.android.lib.resources.status.OCCapability;
 import com.owncloud.android.services.OperationsService.OperationsServiceBinder;
 import com.owncloud.android.ui.activity.ComponentsGetter;
@@ -186,7 +175,7 @@ public class FileMenuFilter {
 
 
     private void filterShareFile(List<Integer> toHide, OCCapability capability) {
-        if (!isSingleSelection() || containsEncryptedFile() ||
+        if (!isSingleSelection() || containsEncryptedFile() || hasEncryptedParent() ||
             (!isShareViaLinkAllowed() && !isShareWithUsersAllowed()) ||
             !isShareApiEnabled(capability) || !files.iterator().next().canReshare()) {
             toHide.add(R.id.action_send_share_file);
@@ -220,7 +209,11 @@ public class FileMenuFilter {
     }
 
     private void filterLock(List<Integer> toHide, boolean fileLockingEnabled) {
-        if (files.isEmpty() || !isSingleSelection() || !fileLockingEnabled) {
+        if (files.isEmpty() ||
+            !isSingleSelection() ||
+            !fileLockingEnabled ||
+            containsEncryptedFile() ||
+            containsEncryptedFolder()) {
             toHide.add(R.id.action_lock_file);
         } else {
             OCFile file = files.iterator().next();
@@ -340,7 +333,7 @@ public class FileMenuFilter {
 
     private void filterRemove(List<Integer> toHide, boolean synchronizing) {
         if (files.isEmpty() || synchronizing || containsLockedFile()
-            || containsEncryptedFolder() || containsEncryptedFile()) {
+            || containsEncryptedFolder() || isFolderAndContainsEncryptedFile()) {
             toHide.add(R.id.action_remove_file);
         }
     }
@@ -379,11 +372,9 @@ public class FileMenuFilter {
         boolean synchronizing = false;
         if (componentsGetter != null && !files.isEmpty() && user != null) {
             OperationsServiceBinder opsBinder = componentsGetter.getOperationsServiceBinder();
-            FileUploaderBinder uploaderBinder = componentsGetter.getFileUploaderBinder();
-            FileDownloaderBinder downloaderBinder = componentsGetter.getFileDownloaderBinder();
             synchronizing = anyFileSynchronizing(opsBinder) ||      // comparing local and remote
-                            anyFileDownloading(downloaderBinder) ||
-                            anyFileUploading(uploaderBinder);
+                anyFileDownloading() ||
+                anyFileUploading();
         }
         return synchronizing;
     }
@@ -398,31 +389,30 @@ public class FileMenuFilter {
         return synchronizing;
     }
 
-    private boolean anyFileDownloading(FileDownloaderBinder downloaderBinder) {
-        boolean downloading = false;
-        if (downloaderBinder != null) {
-            for (Iterator<OCFile> iterator = files.iterator(); !downloading && iterator.hasNext(); ) {
-                downloading = downloaderBinder.isDownloading(user, iterator.next());
+    private boolean anyFileDownloading() {
+        for (OCFile file : files) {
+            if (FileDownloadHelper.Companion.instance().isDownloading(user, file)) {
+                return true;
             }
         }
-        return downloading;
+
+        return false;
     }
 
-    private boolean anyFileUploading(FileUploaderBinder uploaderBinder) {
-        boolean uploading = false;
-        if (uploaderBinder != null) {
-            for (Iterator<OCFile> iterator = files.iterator(); !uploading && iterator.hasNext(); ) {
-                uploading = uploaderBinder.isUploading(user, iterator.next());
+    private boolean anyFileUploading() {
+        for (OCFile file : files) {
+            if (FileUploadHelper.Companion.instance().isUploading(user, file)) {
+                return true;
             }
         }
-        return uploading;
+        return false;
     }
 
     private boolean isShareApiEnabled(OCCapability capability) {
         return capability != null &&
-                (capability.getFilesSharingApiEnabled().isTrue() ||
-                        capability.getFilesSharingApiEnabled().isUnknown()
-                );
+            (capability.getFilesSharingApiEnabled().isTrue() ||
+                capability.getFilesSharingApiEnabled().isUnknown()
+            );
     }
 
     private boolean isShareWithUsersAllowed() {
@@ -485,6 +475,24 @@ public class FileMenuFilter {
         OCFile file = files.iterator().next();
         return isSingleSelection() && (MimeTypeUtil.isVideo(file) || MimeTypeUtil.isAudio(file));
     }
+
+    private boolean isFolderAndContainsEncryptedFile() {
+        for (OCFile file : files) {
+            if (!file.isFolder()) {
+                continue;
+            }
+            if (file.isFolder()) {
+                List<OCFile> children = storageManager.getFolderContent(file, false);
+                for (OCFile child : children) {
+                    if (child.isEncrypted()) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
 
     private boolean containsEncryptedFile() {
         for (OCFile file : files) {

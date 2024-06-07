@@ -1,23 +1,12 @@
 /*
- *   ownCloud Android client application
+ * Nextcloud - Android Client
  *
- *   @author David A. Velasco
- *   Copyright (C) 2015 ownCloud Inc.
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License version 2,
- *   as published by the Free Software Foundation.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- *
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
+ * SPDX-FileCopyrightText: 2017-2018 Andy Scherzinger <info@andy-scherzinger.de>
+ * SPDX-FileCopyrightText: 2017-2018 Tobias Kaminsky <tobias@kaminsky.me>
+ * SPDX-FileCopyrightText: 2015 ownCloud Inc.
+ * SPDX-FileCopyrightText: 2015 David A. Velasco <dvelasco@solidgear.es>
+ * SPDX-License-Identifier: GPL-2.0-only AND (AGPL-3.0-or-later OR GPL-2.0-only)
  */
-
 package com.owncloud.android.ui.dialog;
 
 import android.app.Dialog;
@@ -37,6 +26,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.nextcloud.utils.extensions.BundleExtensionsKt;
 import com.owncloud.android.R;
 import com.owncloud.android.lib.common.utils.Log_OC;
 import com.owncloud.android.ui.activity.CopyToClipboardActivity;
@@ -84,12 +74,12 @@ public class ShareLinkToDialog  extends DialogFragment {
     @Override
     @NonNull
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        mIntent = getArguments().getParcelable(ARG_INTENT);
+        mIntent = BundleExtensionsKt.getParcelableArgument(getArguments(), ARG_INTENT, Intent.class);
         String[] packagesToExclude = getArguments().getStringArray(ARG_PACKAGES_TO_EXCLUDE);
         List<String> packagesToExcludeList = Arrays.asList(packagesToExclude != null ?
                 packagesToExclude : new String[0]);
 
-        PackageManager pm= getActivity().getPackageManager();
+        PackageManager pm = getActivity().getPackageManager();
         List<ResolveInfo> activities = pm.queryIntentActivities(mIntent, PackageManager.MATCH_DEFAULT_ONLY);
         Iterator<ResolveInfo> it = activities.iterator();
         ResolveInfo resolveInfo;
