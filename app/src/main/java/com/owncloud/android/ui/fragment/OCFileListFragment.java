@@ -1048,7 +1048,7 @@ public class OCFileListFragment extends ExtendedListFragment implements
                     } else if (PreviewMediaFragment.canBePreviewed(file)) {
                         // standalone audio playback (no viewpager)
                         setFabVisible(false);
-                        ((FileDisplayActivity) mContainerActivity).startMediaPreview(file, 0, true, true, false);
+                        ((FileDisplayActivity) mContainerActivity).startMediaPreview(file, 0, true, true, false, true);
                     } else if (file.isDown() && MimeTypeUtil.isVCard(file)) {
                         ((FileDisplayActivity) mContainerActivity).startContactListFragment(file);
                     } else if (file.isDown() && MimeTypeUtil.isPDF(file)) {
