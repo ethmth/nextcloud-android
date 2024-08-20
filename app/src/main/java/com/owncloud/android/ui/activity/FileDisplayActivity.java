@@ -1392,7 +1392,7 @@ public class FileDisplayActivity extends FileActivity
                 if (uploadWasFine) {
                     OCFile ocFile = getFile();
                     if (PreviewImageFragment.canBePreviewed(ocFile)) {
-                        startImagePreview(getFile(), true);
+                        startMediaPreview(getFile(), true);
                     } else if (PreviewTextFileFragment.canBePreviewed(ocFile)) {
                         startTextPreview(ocFile, true);
                     }
@@ -1974,25 +1974,29 @@ public class FileDisplayActivity extends FileActivity
         requestForDownload(mWaitingToSend, downloadBehaviour, packageName, activityName);
     }
 
-    public void startImagePreview(OCFile file, boolean showPreview) {
-        Intent showDetailsIntent = new Intent(this, PreviewImageActivity.class);
-        showDetailsIntent.putExtra(EXTRA_FILE, file);
-        showDetailsIntent.putExtra(EXTRA_LIVE_PHOTO_FILE, file.livePhotoVideo);
-        showDetailsIntent.putExtra(EXTRA_USER, getUser().orElseThrow(RuntimeException::new));
-        if (showPreview) {
-            startActivity(showDetailsIntent);
-        } else {
-            FileOperationsHelper fileOperationsHelper = new FileOperationsHelper(this, getUserAccountManager(), connectivityService, editorUtils);
-            fileOperationsHelper.startSyncForFileAndIntent(file, showDetailsIntent);
-        }
+    /**
+     * Opens the image gallery showing the image {@link OCFile} received as parameter.
+     *
+     * @param file Image {@link OCFile} to show.
+     */
+    public void startMediaPreview(OCFile file, boolean showPreview) {
+        startMediaPreview(file, null, showPreview);
     }
 
-    public void startImagePreview(OCFile file, VirtualFolderType type, boolean showPreview) {
+    /**
+     * Opens a gallery preview showing the media {@link OCFile} received as parameter.
+     *
+     * @param file Media {@link OCFile} to preview.
+     */
+    public void startMediaPreview(OCFile file, VirtualFolderType type, boolean showPreview) {
         Intent showDetailsIntent = new Intent(this, PreviewImageActivity.class);
         showDetailsIntent.putExtra(PreviewImageActivity.EXTRA_FILE, file);
-        showDetailsIntent.putExtra(EXTRA_LIVE_PHOTO_FILE, file.livePhotoVideo);
         showDetailsIntent.putExtra(EXTRA_USER, getUser().orElseThrow(RuntimeException::new));
-        showDetailsIntent.putExtra(PreviewImageActivity.EXTRA_VIRTUAL_TYPE, type);
+        showDetailsIntent.putExtra(EXTRA_LIVE_PHOTO_FILE, file.livePhotoVideo);
+
+        if (type != null) {
+            showDetailsIntent.putExtra(PreviewImageActivity.EXTRA_VIRTUAL_TYPE, type);
+        }
 
         if (showPreview) {
             startActivity(showDetailsIntent);
@@ -2228,9 +2232,11 @@ public class FileDisplayActivity extends FileActivity
         } else if (bundle.containsKey(PreviewMediaFragment.EXTRA_START_POSITION)) {
             startMediaPreview((OCFile) bundle.get(EXTRA_FILE), (long) bundle.get(PreviewMediaFragment.EXTRA_START_POSITION), (boolean) bundle.get(PreviewMediaFragment.EXTRA_AUTOPLAY), true, true, true);
         } else if (bundle.containsKey(PreviewImageActivity.EXTRA_VIRTUAL_TYPE)) {
-            startImagePreview((OCFile) bundle.get(EXTRA_FILE), (VirtualFolderType) bundle.get(PreviewImageActivity.EXTRA_VIRTUAL_TYPE), true);
+            startMediaPreview((OCFile) bundle.get(EXTRA_FILE),
+                              (VirtualFolderType) bundle.get(PreviewImageActivity.EXTRA_VIRTUAL_TYPE),
+                              true);
         } else {
-            startImagePreview((OCFile) bundle.get(EXTRA_FILE), true);
+            startMediaPreview((OCFile) bundle.get(EXTRA_FILE), true);
         }
     }
 

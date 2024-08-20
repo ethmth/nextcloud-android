@@ -52,6 +52,7 @@ import com.owncloud.android.lib.resources.status.CapabilityBooleanType;
 import com.owncloud.android.lib.resources.status.E2EVersion;
 import com.owncloud.android.lib.resources.status.OCCapability;
 import com.owncloud.android.operations.RemoteOperationFailedException;
+import com.owncloud.android.ui.preview.PreviewImageActivity;
 import com.owncloud.android.utils.FileStorageUtils;
 import com.owncloud.android.utils.MimeType;
 import com.owncloud.android.utils.MimeTypeUtil;
@@ -228,7 +229,7 @@ public class FileDataStorageManager {
         }
     }
 
-    public List<OCFile> getFolderImages(OCFile folder, boolean onlyOnDevice) {
+    public List<OCFile> getFolderMedia(OCFile folder, boolean onlyOnDevice) {
         List<OCFile> imageList = new ArrayList<>();
 
         if (folder != null) {
@@ -236,7 +237,7 @@ public class FileDataStorageManager {
             List<OCFile> folderContent = getFolderContent(folder, onlyOnDevice);
 
             for (OCFile ocFile : folderContent) {
-                if (MimeTypeUtil.isImage(ocFile)) {
+                if (PreviewImageActivity.canBePreviewed(ocFile)) {
                     imageList.add(ocFile);
                 }
             }

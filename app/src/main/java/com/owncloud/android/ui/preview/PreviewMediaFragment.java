@@ -14,7 +14,6 @@ package com.owncloud.android.ui.preview;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -338,6 +337,7 @@ public class PreviewMediaFragment extends FileFragment implements OnTouchListene
         if (file != null) {
             // bind to any existing player
             mediaPlayerServiceConnection.bind();
+            stopPreview(true);
 
             if (MimeTypeUtil.isAudio(file)) {
                 binding.mediaController.setMediaPlayer(mediaPlayerServiceConnection);
@@ -346,10 +346,6 @@ public class PreviewMediaFragment extends FileFragment implements OnTouchListene
                 binding.emptyView.emptyListView.setVisibility(View.GONE);
                 binding.progress.setVisibility(View.GONE);
             } else if (MimeTypeUtil.isVideo(file)) {
-                if (mediaPlayerServiceConnection.isConnected()) {
-                    // always stop player
-                    stopAudio();
-                }
                 if (exoPlayer != null) {
                     playVideo();
                 } else {
@@ -398,10 +394,6 @@ public class PreviewMediaFragment extends FileFragment implements OnTouchListene
         binding.exoplayerView.setShowPreviousButton(false);
         binding.exoplayerView.setPlayer(exoPlayer);
         binding.exoplayerView.setFullscreenButtonClickListener(isFullScreen -> startFullScreenVideo());
-    }
-
-    private void stopAudio() {
-        mediaPlayerServiceConnection.stop();
     }
 
     @Override
@@ -579,8 +571,9 @@ public class PreviewMediaFragment extends FileFragment implements OnTouchListene
 
     @Override
     public void onPause() {
-        Log_OC.v(TAG, "onPause");
         super.onPause();
+        Log_OC.v(TAG, "onPause");
+        stopPreview(false);
     }
 
     @Override
@@ -590,28 +583,9 @@ public class PreviewMediaFragment extends FileFragment implements OnTouchListene
     }
 
     @Override
-    public void onDestroy() {
-        Log_OC.v(TAG, "onDestroy");
-        super.onDestroy();
-    }
-
-    @Override
-    public void onDestroyView() {
-        Log_OC.v(TAG, "onDestroyView");
-        super.onDestroyView();
-        binding = null;
-    }
-
-    @Override
     public void onStop() {
         Log_OC.v(TAG, "onStop");
-        final OCFile file = getFile();
-        if (MimeTypeUtil.isAudio(file) && !mediaPlayerServiceConnection.isPlaying()) {
-            stopAudio();
-        } else if (MimeTypeUtil.isVideo(file) && exoPlayer != null && exoPlayer.isPlaying()) {
-            savedPlaybackPosition = exoPlayer.getCurrentPosition();
-            exoPlayer.pause();
-        }
+        stopPreview(!mediaPlayerServiceConnection.isPlaying());
 
         mediaPlayerServiceConnection.unbind();
         toggleDrawerLockMode(containerActivity, DrawerLayout.LOCK_MODE_UNLOCKED);
@@ -635,12 +609,6 @@ public class PreviewMediaFragment extends FileFragment implements OnTouchListene
         if (activity != null) {
             new PreviewVideoFullscreenDialog(activity, nextcloudClient, exoPlayer, binding.exoplayerView).show();
         }
-    }
-
-    @Override
-    public void onConfigurationChanged(@NonNull Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        Log_OC.v(TAG, "onConfigurationChanged " + this);
     }
 
     @Override
