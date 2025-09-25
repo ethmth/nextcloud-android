@@ -55,6 +55,7 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionToken
 import androidx.media3.ui.DefaultTimeBar
 import androidx.media3.ui.PlayerView
+import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
@@ -126,6 +127,8 @@ class PreviewMediaActivity :
     private var savedPlaybackPosition: Long = 0
     private var autoplay = true
     private var streamUri: Uri? = null
+    private var pagerAdapter: VideoPagerAdapter? = null
+    private var isPagerMode = false
 
     @Inject
     lateinit var clientFactory: ClientFactory
@@ -171,10 +174,49 @@ class PreviewMediaActivity :
         if (file == null) {
             return
         }
+        // Try pager mode for videos: when multiple sibling videos exist
+        tryEnablePagerMode()
         if (MimeTypeUtil.isAudio(file)) {
             setGenericThumbnail()
             initializeAudioPlayer()
         }
+    }
+
+    private fun tryEnablePagerMode() {
+        val current = file ?: return
+        val parent = storageManager.getFileById(current.parentId) ?: return
+        val siblings = storageManager.getFolderContent(parent, false)
+            .filter { MimeTypeUtil.isVideo(it) }
+
+        if (siblings.size <= 1) {
+            binding.mediaPager.visibility = View.GONE
+            binding.exoplayerView.visibility = View.VISIBLE
+            return
+        }
+
+        val currentUser = user ?: return
+        val startIndex = siblings.indexOfFirst { it.fileId == current.fileId }.coerceAtLeast(0)
+
+        pagerAdapter = VideoPagerAdapter(this, siblings, currentUser)
+        binding.mediaPager.adapter = pagerAdapter
+        binding.mediaPager.setCurrentItem(startIndex, false)
+        binding.mediaPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                onPagerPageSelected(position)
+            }
+        })
+
+        isPagerMode = true
+        binding.mediaPager.visibility = View.VISIBLE
+        binding.exoplayerView.visibility = View.GONE
+        binding.imagePreview.visibility = View.GONE
+    }
+
+    private fun onPagerPageSelected(position: Int) {
+        val selected = pagerAdapter?.getFileAt(position) ?: return
+        setFile(selected)
+        updateActionBarTitleAndHomeButton(selected)
+        binding.audioControllerView.visibility = View.GONE
     }
 
     private fun sendAudioSessionReleaseBroadcast() {
@@ -322,7 +364,7 @@ class PreviewMediaActivity :
 
         Log_OC.v(TAG, "onStart")
 
-        if (MimeTypeUtil.isVideo(file)) {
+        if (!isPagerMode && MimeTypeUtil.isVideo(file)) {
             initializeVideoPlayer()
         }
     }
