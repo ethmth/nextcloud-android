@@ -18,6 +18,7 @@ import android.text.TextUtils
 import android.view.View
 import androidx.core.content.res.ResourcesCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.nextcloud.utils.extensions.remainingDownloadLimit
 import com.nextcloud.utils.mdm.MDMConfig
 import com.owncloud.android.R
 import com.owncloud.android.databinding.FileDetailsShareLinkShareItemBinding
@@ -92,11 +93,9 @@ internal class LinkShareViewHolder(itemView: View) : RecyclerView.ViewHolder(ite
         }
 
         val label = publicShare.label
-        if (label.isNullOrEmpty()) {
-            return
+        if (!label.isNullOrEmpty()) {
+            binding.name.text = context.getString(R.string.share_link_with_label, label)
         }
-
-        binding.name.text = context.getString(R.string.share_link_with_label, label)
     }
 
     private fun setSubline(binding: FileDetailsShareLinkShareItemBinding?, context: Context?, publicShare: OCShare) {
@@ -105,8 +104,8 @@ internal class LinkShareViewHolder(itemView: View) : RecyclerView.ViewHolder(ite
         }
 
         val downloadLimit = publicShare.fileDownloadLimit
-        if (downloadLimit != null && downloadLimit.limit > 0) {
-            val remaining = downloadLimit.limit - downloadLimit.count
+        if (downloadLimit != null) {
+            val remaining = publicShare.remainingDownloadLimit() ?: return
             val text = context.resources.getQuantityString(
                 R.plurals.share_download_limit_description,
                 remaining,

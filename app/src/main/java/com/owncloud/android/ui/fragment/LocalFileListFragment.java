@@ -9,6 +9,7 @@
  */
 package com.owncloud.android.ui.fragment;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
@@ -133,7 +134,7 @@ public class LocalFileListFragment extends ExtendedListFragment implements
             }
         }
 
-        setGridSwitchButton();
+        setLayoutSwitchButton();
 
         if (mSwitchGridViewButton != null) {
             mSwitchGridViewButton.setOnClickListener(v -> {
@@ -142,7 +143,7 @@ public class LocalFileListFragment extends ExtendedListFragment implements
                 } else {
                     switchToGridView();
                 }
-                setGridSwitchButton();
+                setLayoutSwitchButton();
             });
         }
 
@@ -420,5 +421,14 @@ public class LocalFileListFragment extends ExtendedListFragment implements
         boolean isWithinEncryptedFolder();
     }
 
+    @SuppressLint("NotifyDataSetChanged")
+    public void setupStoragePermissionWarningBanner() {
+        mAdapter.notifyDataSetChanged();
+    }
 
+    @Override
+    public void onDestroyView() {
+        mAdapter.cleanup();
+        super.onDestroyView();
+    }
 }

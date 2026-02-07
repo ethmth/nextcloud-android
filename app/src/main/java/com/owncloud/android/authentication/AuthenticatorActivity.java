@@ -44,7 +44,6 @@ import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
-import android.widget.Toast;
 
 import com.blikoon.qrcodescanner.QrCodeActivity;
 import com.google.android.material.button.MaterialButton;
@@ -54,6 +53,7 @@ import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import com.nextcloud.android.common.ui.color.ColorUtil;
 import com.nextcloud.android.common.ui.theme.utils.ColorRole;
+import com.nextcloud.android.lib.resources.users.GenerateOneTimeAppPasswordRemoteOperation;
 import com.nextcloud.client.account.User;
 import com.nextcloud.client.account.UserAccountManager;
 import com.nextcloud.client.device.DeviceInfo;
@@ -62,6 +62,7 @@ import com.nextcloud.client.network.ClientFactory;
 import com.nextcloud.client.onboarding.FirstRunActivity;
 import com.nextcloud.client.onboarding.OnboardingService;
 import com.nextcloud.client.preferences.AppPreferences;
+import com.nextcloud.common.NextcloudClient;
 import com.nextcloud.common.PlainClient;
 import com.nextcloud.operations.PostMethod;
 import com.nextcloud.utils.extensions.BundleExtensionsKt;
@@ -138,6 +139,7 @@ import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleEventObserver;
 import androidx.lifecycle.ProcessLifecycleOwner;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import okhttp3.Credentials;
 import okhttp3.FormBody;
 import okhttp3.RequestBody;
 
@@ -714,22 +716,6 @@ public class AuthenticatorActivity extends AccountAuthenticatorActivity
         } else {
             accountSetupBinding.scanQr.setVisibility(View.GONE);
         }
-
-        addDebugLogin();
-    }
-
-    private void addDebugLogin() {
-        if (BuildConfig.DEBUG) {
-            try {
-                accountSetupBinding.thumbnail.setOnLongClickListener(v -> {
-                    final String dataString = BuildConfig.NC_TEST_SERVER_DATA_STRING;
-                    parseAndLoginFromWebView(dataString);
-                    return false;
-                });
-            } catch (Throwable t) {
-                Log_OC.w(TAG, "Test server data string not available in this build");
-            }
-        }
     }
 
     /**
@@ -859,7 +845,7 @@ public class AuthenticatorActivity extends AccountAuthenticatorActivity
         if (data != null && data.toString().startsWith(getString(R.string.login_data_own_scheme))) {
             if (!MDMConfig.INSTANCE.multiAccountSupport(this) &&
                 accountManager.getAccounts().length == 1) {
-                Toast.makeText(this, R.string.no_mutliple_accounts_allowed, Toast.LENGTH_LONG).show();
+                DisplayUtils.showSnackMessage(this, R.string.no_mutliple_accounts_allowed);
                 finish();
                 return;
             } else {
@@ -1307,16 +1293,21 @@ public class AuthenticatorActivity extends AccountAuthenticatorActivity
             case ACCOUNT_NOT_NEW:
                 mAuthStatusText = getString(R.string.auth_account_not_new);
                 if (!showWebViewLoginUrl) {
-                    DisplayUtils.showErrorAndFinishActivity(this, mAuthStatusText);
+                    showErrorAndFinishActivity();
                 }
                 break;
             case UNHANDLED_HTTP_CODE:
             default:
                 mAuthStatusText = ErrorMessageAdapter.getErrorCauseMessage(result, null, getResources());
                 if (!showWebViewLoginUrl) {
-                    DisplayUtils.showErrorAndFinishActivity(this, mAuthStatusText);
+                    showErrorAndFinishActivity();
                 }
         }
+    }
+
+    private void showErrorAndFinishActivity() {
+        DisplayUtils.showSnackMessage(this, mAuthStatusText);
+        finish();
     }
 
     private void updateStatusIconFailUserName(int failedStatusText) {
@@ -1588,13 +1579,45 @@ public class AuthenticatorActivity extends AccountAuthenticatorActivity
 
                 if (!MDMConfig.INSTANCE.multiAccountSupport(this) &&
                     accountManager.getAccounts().length == 1) {
-                    Toast.makeText(this, R.string.no_mutliple_accounts_allowed, Toast.LENGTH_LONG).show();
+                    DisplayUtils.showSnackMessage(this, R.string.no_mutliple_accounts_allowed);
                 } else {
-                    parseAndLoginFromWebView(resultData);
+                    String onetimePrefix = getString(R.string.login_data_own_scheme) + PROTOCOL_SUFFIX + "onetime-login/";
+                    
+                    if (resultData.startsWith(onetimePrefix)) {
+                        parseAndLoginFromOneTimeCode(onetimePrefix, resultData);
+                    } else {
+                        parseAndLoginFromWebView(resultData);
+                    }
                 }
             }
         });
 
+    private void parseAndLoginFromOneTimeCode(String onetimePrefix, String resultData) {
+        LoginUrlInfo loginUrlInfo = parseLoginDataUrl(onetimePrefix, resultData);
+
+        GenerateOneTimeAppPasswordRemoteOperation generateOneTimeAppPasswordRemoteOperation = new GenerateOneTimeAppPasswordRemoteOperation();
+
+        String credentials = Credentials.basic(loginUrlInfo.getLoginName(), loginUrlInfo.getAppPassword());
+        NextcloudClient nextcloudClient = new NextcloudClient(Uri.parse(loginUrlInfo.getServer()), loginUrlInfo.getLoginName(), credentials, this);
+
+        new Thread(() -> {
+            RemoteOperationResult<String> otpResult = nextcloudClient.execute(generateOneTimeAppPasswordRemoteOperation);
+
+            if (otpResult.isSuccess()) {
+                mServerInfo.mBaseUrl = AuthenticatorUrlUtils.INSTANCE.normalizeUrlSuffix(loginUrlInfo.getServer());
+                webViewUser = loginUrlInfo.getLoginName();
+                webViewPassword = otpResult.getResultData();
+
+                runOnUiThread(this::checkOcServer);
+            } else {
+                mServerStatusIcon = R.drawable.ic_alert;
+                mServerStatusText = getString(R.string.qr_could_not_be_read);
+
+                runOnUiThread(this::showServerStatus);
+            }
+        }).start();
+    }
+    
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            @NonNull String[] permissions,

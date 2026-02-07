@@ -96,6 +96,7 @@ public class GalleryFragment extends OCFileListFragment implements GalleryFragme
         }
 
         registerRefreshSearchEventReceiver();
+
     }
 
     private void registerRefreshSearchEventReceiver() {
@@ -120,6 +121,7 @@ public class GalleryFragment extends OCFileListFragment implements GalleryFragme
     public void onDestroyView() {
         LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(refreshSearchEventReceiver);
         setLastMediaItemPosition(null);
+        mAdapter.cleanup();
         super.onDestroyView();
     }
 

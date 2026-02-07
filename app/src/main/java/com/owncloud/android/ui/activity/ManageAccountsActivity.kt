@@ -33,9 +33,9 @@ import com.nextcloud.client.account.UserAccountManager
 import com.nextcloud.client.jobs.download.FileDownloadHelper
 import com.nextcloud.client.onboarding.FirstRunActivity
 import com.nextcloud.model.WorkerState
-import com.nextcloud.model.WorkerState.DownloadStarted
-import com.nextcloud.model.WorkerStateLiveData
+import com.nextcloud.model.WorkerState.FileDownloadStarted
 import com.nextcloud.utils.extensions.getParcelableArgument
+import com.nextcloud.utils.extensions.observeWorker
 import com.nextcloud.utils.mdm.MDMConfig.multiAccountSupport
 import com.owncloud.android.MainApp
 import com.owncloud.android.R
@@ -437,7 +437,7 @@ class ManageAccountsActivity :
                 val itemId = item.itemId
                 when (itemId) {
                     R.id.action_open_account -> {
-                        accountClicked(user.hashCode())
+                        accountClicked(user)
                     }
                     R.id.action_delete_account -> {
                         openAccountRemovalDialog(user, supportFragmentManager)
@@ -456,10 +456,8 @@ class ManageAccountsActivity :
     }
 
     private fun observeWorkerState() {
-        WorkerStateLiveData.instance().observe(
-            this
-        ) { state: WorkerState? ->
-            if (state is DownloadStarted) {
+        observeWorker { state: WorkerState? ->
+            if (state is FileDownloadStarted) {
                 Log_OC.d(TAG, "Download worker started")
                 workerAccountName = state.user?.accountName
                 workerCurrentDownload = state.currentDownload

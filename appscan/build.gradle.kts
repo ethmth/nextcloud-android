@@ -15,7 +15,7 @@ android {
     namespace = "com.nextcloud.appscan"
 
     defaultConfig {
-        minSdk = 27
+        minSdk = 28
         compileSdk = 36
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -27,8 +27,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
     lint.targetSdk = 36
@@ -36,7 +36,7 @@ android {
 }
 
 kotlin.compilerOptions {
-    jvmTarget.set(JvmTarget.JVM_17)
+    jvmTarget.set(JvmTarget.JVM_21)
     freeCompilerArgs.add("-opt-in=kotlin.RequiresOptIn")
 }
 

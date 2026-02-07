@@ -18,6 +18,7 @@ import androidx.work.ListenableWorker
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequest
 import androidx.work.Operation
+import androidx.work.OutOfQuotaPolicy
 import androidx.work.PeriodicWorkRequest
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
@@ -42,6 +43,7 @@ import com.owncloud.android.operations.DownloadType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.time.Duration
 import java.util.Date
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -99,8 +101,6 @@ internal class BackgroundJobManagerImpl(
         const val JOB_INTERNAL_TWO_WAY_SYNC = "internal_two_way_sync"
 
         const val JOB_TEST = "test_job"
-
-        const val MAX_CONTENT_TRIGGER_DELAY_MS = 10000L
 
         const val TAG_PREFIX_NAME = "name"
         const val TAG_PREFIX_USER = "user"
@@ -268,13 +268,15 @@ internal class BackgroundJobManagerImpl(
             return workInfo.map { it -> it.map { fromWorkInfo(it) ?: JobInfo() }.sortedBy { it.started }.reversed() }
         }
 
+    @Suppress("MagicNumber")
     override fun scheduleContentObserverJob() {
         val constrains = Constraints.Builder()
             .addContentUriTrigger(MediaStore.Images.Media.INTERNAL_CONTENT_URI, true)
             .addContentUriTrigger(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, true)
             .addContentUriTrigger(MediaStore.Video.Media.INTERNAL_CONTENT_URI, true)
             .addContentUriTrigger(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, true)
-            .setTriggerContentMaxDelay(MAX_CONTENT_TRIGGER_DELAY_MS, TimeUnit.MILLISECONDS)
+            .setTriggerContentUpdateDelay(Duration.ofSeconds(5))
+            .setTriggerContentMaxDelay(Duration.ofSeconds(10))
             .build()
 
         val request = oneTimeRequestBuilder(ContentObserverWork::class, JOB_CONTENT_OBSERVER)
@@ -420,8 +422,8 @@ internal class BackgroundJobManagerImpl(
         workManager.cancelJob(JOB_PERIODIC_CALENDAR_BACKUP, user)
     }
 
-    override fun bothFilesSyncJobsRunning(syncedFolderID: Long): Boolean =
-        workManager.isWorkRunning(JOB_PERIODIC_FILES_SYNC + "_" + syncedFolderID) &&
+    override fun isAutoUploadWorkerRunning(syncedFolderID: Long): Boolean =
+        workManager.isWorkRunning(JOB_PERIODIC_FILES_SYNC + "_" + syncedFolderID) ||
             workManager.isWorkRunning(JOB_IMMEDIATE_FILES_SYNC + "_" + syncedFolderID)
 
     override fun startPeriodicallyOfflineOperation() {
@@ -476,40 +478,7 @@ internal class BackgroundJobManagerImpl(
         )
     }
 
-    override fun schedulePeriodicFilesSyncJob(syncedFolder: SyncedFolder) {
-        val syncedFolderID = syncedFolder.id
-
-        val arguments = Data.Builder()
-            .putLong(AutoUploadWorker.SYNCED_FOLDER_ID, syncedFolderID)
-            .build()
-
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .setRequiresCharging(syncedFolder.isChargingOnly)
-            .build()
-
-        val request = periodicRequestBuilder(
-            jobClass = AutoUploadWorker::class,
-            jobName = JOB_PERIODIC_FILES_SYNC + "_" + syncedFolderID,
-            intervalMins = DEFAULT_PERIODIC_JOB_INTERVAL_MINUTES,
-            constraints = constraints
-        )
-            .setBackoffCriteria(
-                BackoffPolicy.LINEAR,
-                DEFAULT_BACKOFF_CRITERIA_DELAY_SEC,
-                TimeUnit.SECONDS
-            )
-            .setInputData(arguments)
-            .build()
-
-        workManager.enqueueUniquePeriodicWork(
-            JOB_PERIODIC_FILES_SYNC + "_" + syncedFolderID,
-            ExistingPeriodicWorkPolicy.KEEP,
-            request
-        )
-    }
-
-    override fun startAutoUploadImmediately(
+    override fun startAutoUpload(
         syncedFolder: SyncedFolder,
         overridePowerSaving: Boolean,
         contentUris: Array<String?>
@@ -532,6 +501,7 @@ internal class BackgroundJobManagerImpl(
             jobName = JOB_IMMEDIATE_FILES_SYNC + "_" + syncedFolderID
         )
             .setInputData(arguments)
+            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .setConstraints(constraints)
             .setBackoffCriteria(
                 BackoffPolicy.LINEAR,
@@ -681,6 +651,7 @@ internal class BackgroundJobManagerImpl(
                     .addTag(tag)
                     .setInputData(dataBuilder.build())
                     .setConstraints(constraints)
+                    .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                     .build()
             }
 
@@ -728,6 +699,7 @@ internal class BackgroundJobManagerImpl(
         val request = oneTimeRequestBuilder(FileDownloadWorker::class, JOB_FILES_DOWNLOAD, user)
             .addTag(tag)
             .setInputData(data)
+            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .build()
 
         // Since for each file new FileDownloadWorker going to be scheduled,
@@ -839,6 +811,7 @@ internal class BackgroundJobManagerImpl(
             .addTag(JOB_DOWNLOAD_FOLDER)
             .setInputData(data)
             .setConstraints(constraints)
+            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .build()
 
         workManager.enqueueUniqueWork(JOB_DOWNLOAD_FOLDER, ExistingWorkPolicy.APPEND_OR_REPLACE, request)

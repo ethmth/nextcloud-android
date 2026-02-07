@@ -368,10 +368,6 @@ public interface AppPreferences {
 
     void setGlobalUploadPaused(boolean globalPausedState);
 
-    void setPdfZoomTipShownCount(int count);
-
-    int getPdfZoomTipShownCount();
-
     boolean isStoragePermissionRequested();
 
     void setStoragePermissionRequested(boolean value);
@@ -400,4 +396,7 @@ public interface AppPreferences {
 
     String getLastDisplayedAccountName();
     void setLastDisplayedAccountName(String lastDisplayedAccountName);
+
+    boolean startAutoUploadOnStart();
+    void setLastAutoUploadOnStartTime(long timeInMillisecond);
 }

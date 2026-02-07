@@ -14,7 +14,10 @@ import android.graphics.BitmapFactory
 import android.os.Handler
 import android.os.Looper
 import androidx.core.app.NotificationCompat
+import androidx.work.ForegroundInfo
+import com.nextcloud.utils.ForegroundServiceHelper
 import com.owncloud.android.R
+import com.owncloud.android.datamodel.ForegroundServiceType
 import com.owncloud.android.utils.theme.ViewThemeUtils
 
 open class WorkerNotificationManager(
@@ -46,6 +49,18 @@ open class WorkerNotificationManager(
         notificationManager.notify(id, notificationBuilder.build())
     }
 
+    fun showNotification(notification: Notification) {
+        notificationManager.notify(id, notification)
+    }
+
+    fun showNotification(id: Int, notification: Notification) {
+        notificationManager.notify(id, notification)
+    }
+
+    fun dismissNotification(id: Int) {
+        notificationManager.cancel(id)
+    }
+
     @Suppress("MagicNumber")
     fun setProgress(percent: Int, progressText: String?, indeterminate: Boolean) {
         notificationBuilder.run {
@@ -67,4 +82,11 @@ open class WorkerNotificationManager(
     fun getId(): Int = id
 
     fun getNotification(): Notification = notificationBuilder.build()
+
+    fun getForegroundInfo(notification: Notification): ForegroundInfo =
+        ForegroundServiceHelper.createWorkerForegroundInfo(
+            id,
+            notification,
+            ForegroundServiceType.DataSync
+        )
 }

@@ -50,10 +50,12 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.ionos.player.model.PlaybackModel;
+import com.nextcloud.android.common.core.utils.ecosystem.EcosystemApp;
+import com.nextcloud.android.common.core.utils.ecosystem.EcosystemManager;
+import com.nextcloud.android.common.ui.theme.utils.ColorRole;
 import com.nextcloud.client.account.User;
 import com.nextcloud.client.di.Injectable;
 import com.nextcloud.client.files.DeepLinkConstants;
-import com.nextcloud.client.jobs.upload.FileUploadWorker;
 import com.nextcloud.client.network.ClientFactory;
 import com.nextcloud.client.onboarding.FirstRunActivity;
 import com.nextcloud.client.preferences.AppPreferences;
@@ -64,6 +66,8 @@ import com.nextcloud.ui.composeActivity.ComposeDestination;
 import com.nextcloud.utils.GlideHelper;
 import com.nextcloud.utils.LinkHelper;
 import com.nextcloud.utils.extensions.ActivityExtensionsKt;
+import com.nextcloud.utils.extensions.DrawerActivityExtensionsKt;
+import com.nextcloud.utils.extensions.NavigationViewExtensionsKt;
 import com.nextcloud.utils.extensions.ViewExtensionsKt;
 import com.nextcloud.utils.mdm.MDMConfig;
 import com.owncloud.android.MainApp;
@@ -89,14 +93,9 @@ import com.owncloud.android.operations.GetCapabilitiesOperation;
 import com.owncloud.android.ui.activities.ActivitiesActivity;
 import com.owncloud.android.ui.events.AccountRemovedEvent;
 import com.owncloud.android.ui.events.ChangeMenuEvent;
-import com.owncloud.android.ui.events.DummyDrawerEvent;
 import com.owncloud.android.ui.events.SearchEvent;
 import com.owncloud.android.ui.fragment.FileDetailsSharingProcessFragment;
-import com.owncloud.android.ui.fragment.GalleryFragment;
-import com.owncloud.android.ui.fragment.GroupfolderListFragment;
 import com.owncloud.android.ui.fragment.OCFileListFragment;
-import com.owncloud.android.ui.fragment.SharedListFragment;
-import com.owncloud.android.ui.preview.PreviewTextStringFragment;
 import com.owncloud.android.ui.trashbin.TrashbinActivity;
 import com.owncloud.android.utils.BitmapUtils;
 import com.owncloud.android.utils.DisplayUtils;
@@ -146,6 +145,8 @@ public abstract class DrawerActivity extends ToolbarActivity
     private static final int MENU_ITEM_EXTERNAL_LINK = 111;
     private static final int MAX_LOGO_SIZE_PX = 1000;
     private static final int RELATIVE_THRESHOLD_WARNING = 80;
+    public static final int REQ_ALL_FILES_ACCESS = 3001;
+    public static final int REQ_MEDIA_ACCESS = 3000;
 
     /**
      * Reference to the drawer layout.
@@ -158,11 +159,6 @@ public abstract class DrawerActivity extends ToolbarActivity
     protected ActionBarDrawerToggle mDrawerToggle;
 
     /**
-     * Reference to the navigation view.
-     */
-    private NavigationView drawerNavigationView;
-
-    /**
      * Reference to the navigation view header.
      */
     private View mNavigationViewHeader;
@@ -171,11 +167,6 @@ public abstract class DrawerActivity extends ToolbarActivity
      * Flag to signal if the account chooser is active.
      */
     private boolean mIsAccountChooserActive;
-
-    /**
-     * Id of the checked menu item.
-     */
-    public static int menuItemId = Menu.NONE;
 
     /**
      * container layout of the quota view.
@@ -202,6 +193,35 @@ public abstract class DrawerActivity extends ToolbarActivity
     private ArbitraryDataProvider arbitraryDataProvider;
 
     private BottomNavigationView bottomNavigationView;
+    private NavigationView drawerNavigationView;
+
+    /**
+     * Returns the navigation drawer menu item ID that represents
+     * the current activity.
+     *
+     * <p>
+     * This method is used by the DrawerActivity to determine
+     * which drawer item should be highlighted (checked) when the
+     * activity is visible.
+     * </p>
+     *
+     * <p>
+     * Subclasses that are displayed within the drawer must override
+     * this method and return their corresponding menu item ID
+     * (e.g. R.id.nav_gallery, R.id.nav_settings).
+     * </p>
+     *
+     * <p>
+     * The default implementation returns {@link R.id#nav_all_files}.
+     * </p>
+     *
+     * @return the menu item ID to be marked as selected in the drawer
+     */
+    protected int getMenuItemId() {
+        return R.id.nav_all_files;
+    }
+
+    private EcosystemManager ecosystemManager;
 
     @Inject
     AppPreferences preferences;
@@ -221,11 +241,17 @@ public abstract class DrawerActivity extends ToolbarActivity
     /**
      * Initializes the drawer and its content. This method needs to be called after the content view has been set.
      */
-    protected void setupDrawer() {
-        mDrawerLayout = findViewById(R.id.drawer_layout);
+    protected void setupDrawer(int id) {
+        if (mDrawerLayout == null) {
+            mDrawerLayout = findViewById(R.id.drawer_layout);
+        }
 
-        drawerNavigationView = findViewById(R.id.nav_view);
+        if (drawerNavigationView == null) {
+            drawerNavigationView = findViewById(R.id.nav_view);
+        }
+
         if (drawerNavigationView != null) {
+            viewThemeUtils.files.colorNavigationView(drawerNavigationView);
 
             // Setting up drawer header
             mNavigationViewHeader = drawerNavigationView.getHeaderView(0);
@@ -234,6 +260,7 @@ public abstract class DrawerActivity extends ToolbarActivity
             setupDrawerMenu(drawerNavigationView);
             getAndDisplayUserQuota();
             setupQuotaElement();
+            highlightNavigationViewItem(id);
         }
 
         setupDrawerToggle();
@@ -242,14 +269,58 @@ public abstract class DrawerActivity extends ToolbarActivity
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
-        bottomNavigationView = findViewById(R.id.bottom_navigation);
+        if (bottomNavigationView == null) {
+            bottomNavigationView = findViewById(R.id.bottom_navigation);
+        }
+
         if (bottomNavigationView != null) {
             themeBottomNavigationMenu();
             checkAssistantBottomNavigationMenu();
             handleBottomNavigationViewClicks();
+            highlightNavigationViewItem(id);
+        }
+    }
+
+    /**
+     * Highlights (checks) the given menu item ID in the app's navigation bars.
+     *
+     * <p>
+     * This method updates both the navigation drawer (`drawerNavigationView`) and
+     * the bottom navigation bar (`bottomNavigationView`).
+     * </p>
+     *
+     * <p>
+     * This method is needs to be called from <code>onResume()</code> of child activities with all possible menu item ids.
+     * This fixes:
+     * <ul>
+     *   <li>When navigating back from another activity (e.g., Activity B → Activity A),
+     *       the previously selected menu item remains highlighted.</li>
+     * </ul>
+     * </p>
+     *
+     * @param menuItemId the ID of the menu item to mark as selected/highlighted
+     */
+    public void highlightNavigationViewItem(int menuItemId) {
+        if (drawerNavigationView != null) {
+            NavigationViewExtensionsKt.unsetAllNavigationItems(drawerNavigationView);
+            MenuItem menuItem = drawerNavigationView.getMenu().findItem(menuItemId);
+
+            if (menuItem != null && !menuItem.isChecked()) {
+                menuItem.setChecked(true);
+            }
         }
 
-        setNavigationViewItemChecked();
+        if (bottomNavigationView != null) {
+            NavigationViewExtensionsKt.unsetAllNavigationItems(bottomNavigationView);
+            MenuItem menuItem = bottomNavigationView.getMenu().findItem(menuItemId);
+
+            // Don't highlight assistant bottom navigation item because Assistant screen doesn't have same bottom navigation bar
+            if (menuItem != null && !menuItem.isChecked() && menuItem.getItemId() != R.id.nav_assistant) {
+                menuItem.setChecked(true);
+            }
+        }
+
+        Log_OC.d(TAG, "New menu item is: " + menuItemId);
     }
 
     private void themeBottomNavigationMenu() {
@@ -266,39 +337,17 @@ public abstract class DrawerActivity extends ToolbarActivity
             .setVisible(isAssistantAvailable);
     }
 
-    @SuppressFBWarnings("RV")
-    private void handleBottomNavigationViewClicks() {
-        bottomNavigationView.setOnItemSelectedListener(menuItem -> {
-            menuItemId = menuItem.getItemId();
+    private void openFavoritesTab() {
+        resetOnlyPersonalAndOnDevice();
+        setupToolbar();
+        SearchEvent searchEvent = new SearchEvent("", SearchRemoteOperation.SearchType.FAVORITE_SEARCH);
+        launchActivityForSearch(searchEvent, R.id.nav_favorites);
+    }
 
-            exitSelectionMode();
-            resetOnlyPersonalAndOnDevice();
-
-            if (menuItemId == R.id.nav_all_files) {
-                showFiles(false,false);
-                if (this instanceof FileDisplayActivity fda) {
-                    fda.browseToRoot();
-                }
-                EventBus.getDefault().post(new ChangeMenuEvent());
-            } else if (menuItemId == R.id.nav_favorites) {
-                setupToolbar();
-                handleSearchEvents(new SearchEvent("", SearchRemoteOperation.SearchType.FAVORITE_SEARCH), menuItemId);
-            } else if (menuItemId == R.id.nav_assistant && !(this instanceof ComposeActivity)) {
-                startComposeActivity(ComposeDestination.AssistantScreen, R.string.assistant_screen_top_bar_title);
-            } else if (menuItemId == R.id.nav_gallery) {
-                setupToolbar();
-                startPhotoSearch(menuItem.getItemId());
-            }
-
-            // Remove extra icon from the action bar
-            if (getSupportActionBar() != null) {
-                getSupportActionBar().setIcon(null);
-            }
-
-            setNavigationViewItemChecked();
-
-            return false;
-        });
+    private void openMediaTab(int menuItemId) {
+        resetOnlyPersonalAndOnDevice();
+        setupToolbar();
+        startPhotoSearch(menuItemId);
     }
 
     @Nullable
@@ -323,16 +372,10 @@ public abstract class DrawerActivity extends ToolbarActivity
         }
     }
 
-    /**
-     * initializes and sets up the drawer toggle.
-     */
     private void setupDrawerToggle() {
         mDrawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout, R.string.drawer_open, R.string.drawer_close) {
-            /** Called when a drawer has settled in a completely closed state. */
             public void onDrawerClosed(View view) {
                 super.onDrawerClosed(view);
-                supportInvalidateOptionsMenu();
-                mDrawerToggle.setDrawerIndicatorEnabled(isDrawerIndicatorAvailable());
 
                 if (pendingRunnable != null) {
                     new Handler().post(pendingRunnable);
@@ -341,23 +384,12 @@ public abstract class DrawerActivity extends ToolbarActivity
 
                 closeDrawer();
             }
-
-            /** Called when a drawer has settled in a completely open state. */
-            public void onDrawerOpened(View drawerView) {
-                super.onDrawerOpened(drawerView);
-                mDrawerToggle.setDrawerIndicatorEnabled(true);
-                supportInvalidateOptionsMenu();
-            }
         };
 
-        // Set the drawer toggle as the DrawerListener
         mDrawerLayout.addDrawerListener(mDrawerToggle);
         mDrawerToggle.setDrawerIndicatorEnabled(true);
         mDrawerToggle.setDrawerSlideAnimationEnabled(true);
-        Drawable backArrow = ResourcesCompat.getDrawable(getResources(),
-                                                         R.drawable.ic_arrow_back,
-                                                         null);
-
+        final Drawable backArrow = ResourcesCompat.getDrawable(getResources(), R.drawable.ic_arrow_back, null);
         if (backArrow != null) {
             viewThemeUtils.platform.tintToolbarArrowDrawable(this, mDrawerToggle, backArrow);
         }
@@ -371,7 +403,9 @@ public abstract class DrawerActivity extends ToolbarActivity
         mQuotaProgressBar = (LinearProgressIndicator) findQuotaViewById(R.id.drawer_quota_ProgressBar);
         mQuotaTextPercentage = (TextView) findQuotaViewById(R.id.drawer_quota_percentage);
         mQuotaTextLink = (TextView) findQuotaViewById(R.id.drawer_quota_link);
-        viewThemeUtils.material.colorProgressBar(mQuotaProgressBar);
+        viewThemeUtils.material.colorProgressBar(mQuotaProgressBar, ColorRole.PRIMARY);
+        mQuotaProgressBar.setTrackStopIndicatorSize(0);
+        viewThemeUtils.platform.colorViewBackground(mQuotaView);
     }
 
     public void updateHeader() {
@@ -467,13 +501,15 @@ public abstract class DrawerActivity extends ToolbarActivity
         LinearLayout moreView = banner.findViewById(R.id.drawer_ecosystem_more);
         LinearLayout assistantView = banner.findViewById(R.id.drawer_ecosystem_assistant);
 
-        notesView.setOnClickListener(v -> LinkHelper.INSTANCE.openAppOrStore(LinkHelper.APP_NEXTCLOUD_NOTES, getUser(), this));
-        talkView.setOnClickListener(v -> LinkHelper.INSTANCE.openAppOrStore(LinkHelper.APP_NEXTCLOUD_TALK, getUser(), this));
+        final var optionalUser = getUser();
+        if (optionalUser.isPresent()) {
+            final var accountName = optionalUser.get().getAccountName();
+            notesView.setOnClickListener(v -> ecosystemManager.openApp(EcosystemApp.NOTES, accountName));
+            talkView.setOnClickListener(v -> ecosystemManager.openApp(EcosystemApp.TALK, accountName));
+        }
+
         moreView.setOnClickListener(v -> LinkHelper.INSTANCE.openAppStore("Nextcloud", true, this));
-        assistantView.setOnClickListener(v -> {
-            DrawerActivity.menuItemId = Menu.NONE;
-            startComposeActivity(ComposeDestination.AssistantScreen, R.string.assistant_screen_top_bar_title);
-        });
+        assistantView.setOnClickListener(v -> startAssistantScreen());
         if (getCapabilities() != null && getCapabilities().getAssistant().isTrue()) {
             assistantView.setVisibility(View.VISIBLE);
         } else {
@@ -555,46 +591,20 @@ public abstract class DrawerActivity extends ToolbarActivity
         DrawerMenuUtil.removeMenuItem(menu, R.id.nav_logout, !getResources().getBoolean(R.bool.show_drawer_logout));
     }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onMessageEvent(DummyDrawerEvent event) {
-        unsetAllDrawerMenuItems();
-    }
-
+    // region navigation item click
     private void onNavigationItemClicked(final MenuItem menuItem) {
         int itemId = menuItem.getItemId();
-        menuItemId = itemId;
-        setNavigationViewItemChecked();
 
         if (itemId == R.id.nav_all_files || itemId == R.id.nav_personal_files) {
-            if (this instanceof FileDisplayActivity fda &&
-                !(fda.getLeftFragment() instanceof GalleryFragment) &&
-                !(fda.getLeftFragment() instanceof SharedListFragment) &&
-                !(fda.getLeftFragment() instanceof GroupfolderListFragment) &&
-                !(fda.getLeftFragment() instanceof PreviewTextStringFragment)) {
-                showFiles(false, itemId == R.id.nav_personal_files);
-                fda.browseToRoot();
-                EventBus.getDefault().post(new ChangeMenuEvent());
-            } else {
-                MainApp.showOnlyFilesOnDevice(false);
-                MainApp.showOnlyPersonalFiles(itemId == R.id.nav_personal_files);
-                Intent intent = new Intent(getApplicationContext(), FileDisplayActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                intent.setAction(FileDisplayActivity.ALL_FILES);
-                startActivity(intent);
-            }
-
             closeDrawer();
-        } else if (itemId == R.id.nav_favorites) {
-            resetOnlyPersonalAndOnDevice();
-            setupToolbar();
-            handleSearchEvents(new SearchEvent("", SearchRemoteOperation.SearchType.FAVORITE_SEARCH), menuItem.getItemId());
-        } else if (itemId == R.id.nav_gallery) {
-            resetOnlyPersonalAndOnDevice();
-            setupToolbar();
-            startPhotoSearch(menuItem.getItemId());
-        } else if (itemId == R.id.nav_on_device) {
+            DrawerActivityExtensionsKt.navigateToAllFiles(this,itemId == R.id.nav_personal_files);
             EventBus.getDefault().post(new ChangeMenuEvent());
-            showFiles(true, false);
+        } else if (itemId == R.id.nav_favorites) {
+            openFavoritesTab();
+        } else if (itemId == R.id.nav_gallery) {
+            openMediaTab(menuItem.getItemId());
+        } else if (itemId == R.id.nav_on_device) {
+            showOnDeviceFiles();
         } else if (itemId == R.id.nav_uploads) {
             resetOnlyPersonalAndOnDevice();
             startActivity(UploadListActivity.class, Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -606,20 +616,13 @@ public abstract class DrawerActivity extends ToolbarActivity
             startActivity(ActivitiesActivity.class, Intent.FLAG_ACTIVITY_CLEAR_TOP);
         } else if (itemId == R.id.nav_settings) {
             resetOnlyPersonalAndOnDevice();
-
-            /**
-             * Since pressing the back button in SettingsActivity always returns to the all file list, we can clear the stack.
-             * {@link SettingsActivity#onBackPressed()
-             */
             final Intent intent = new Intent(this, SettingsActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
         } else if (itemId == R.id.nav_community) {
             resetOnlyPersonalAndOnDevice();
             startActivity(CommunityActivity.class);
         } else if (itemId == R.id.nav_logout) {
             resetOnlyPersonalAndOnDevice();
-            menuItemId = Menu.NONE;
             MenuItem isNewMenuItemChecked = menuItem.setChecked(false);
             Log_OC.d(TAG,"onNavigationItemClicked nav_logout setChecked " + isNewMenuItemChecked);
             final Optional<User> optionalUser = getUser();
@@ -627,14 +630,13 @@ public abstract class DrawerActivity extends ToolbarActivity
                 UserInfoActivity.openAccountRemovalDialog(optionalUser.get(), getSupportFragmentManager());
             }
         } else if (itemId == R.id.nav_shared) {
-            resetOnlyPersonalAndOnDevice();
-            startSharedSearch(menuItem);
+            openSharedTab();
         } else if (itemId == R.id.nav_recently_modified) {
             resetOnlyPersonalAndOnDevice();
             startRecentlyModifiedSearch(menuItem);
         } else if (itemId == R.id.nav_assistant) {
             resetOnlyPersonalAndOnDevice();
-            startComposeActivity(ComposeDestination.AssistantScreen, R.string.assistant_screen_top_bar_title);
+            startAssistantScreen();
         } else if (itemId == R.id.nav_groupfolders) {
             resetOnlyPersonalAndOnDevice();
             Intent intent = new Intent(getApplicationContext(), FileDisplayActivity.class);
@@ -650,12 +652,51 @@ public abstract class DrawerActivity extends ToolbarActivity
                 Log_OC.w(TAG, "Unknown drawer menu item clicked: " + menuItem.getTitle());
             }
         }
+
+        // from navigation user always sees root level
+        resetFileDepth();
+
+        highlightNavigationViewItem(itemId);
     }
 
-    private void startComposeActivity(ComposeDestination destination, int titleId) {
+    @SuppressFBWarnings("RV")
+    private void handleBottomNavigationViewClicks() {
+        bottomNavigationView.setOnItemSelectedListener(menuItem -> {
+            int menuItemId = menuItem.getItemId();
+            exitSelectionMode();
+            resetOnlyPersonalAndOnDevice();
+
+            if (menuItemId == R.id.nav_all_files) {
+                DrawerActivityExtensionsKt.navigateToAllFiles(this);
+                EventBus.getDefault().post(new ChangeMenuEvent());
+            } else if (menuItemId == R.id.nav_favorites) {
+                openFavoritesTab();
+            } else if (menuItemId == R.id.nav_assistant && !(this instanceof ComposeActivity)) {
+                startAssistantScreen();
+            } else if (menuItemId == R.id.nav_gallery) {
+                openMediaTab(menuItem.getItemId());
+            }
+
+            // Remove extra icon from the action bar
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setIcon(null);
+            }
+
+            // from navigation user always sees root level
+            resetFileDepth();
+
+            highlightNavigationViewItem(menuItemId);
+            return false;
+        });
+    }
+    // endregion
+
+    private void startAssistantScreen() {
+        final var destination = ComposeDestination.Companion.getAssistantScreen(this);
         Intent composeActivity = new Intent(getApplicationContext(), ComposeActivity.class);
-        composeActivity.putExtra(ComposeActivity.DESTINATION, destination);
-        composeActivity.putExtra(ComposeActivity.TITLE, titleId);
+        final Bundle bundle = new Bundle();
+        bundle.putParcelable(ComposeActivity.DESTINATION, destination);
+        composeActivity.putExtras(bundle);
         startActivity(composeActivity);
     }
 
@@ -694,11 +735,17 @@ public abstract class DrawerActivity extends ToolbarActivity
         playbackModel.release();
     }
 
-    private void startSharedSearch(MenuItem menuItem) {
-        SearchEvent searchEvent = new SearchEvent("", SearchRemoteOperation.SearchType.SHARED_FILTER);
-        MainApp.showOnlyFilesOnDevice(false);
+    private void resetFileDepth() {
+        final var ocFileListFragment = getOCFileListFragment();
+        if (ocFileListFragment != null) {
+            ocFileListFragment.resetFileDepth();
+        }
+    }
 
-        launchActivityForSearch(searchEvent, menuItem.getItemId());
+    private void openSharedTab() {
+        resetOnlyPersonalAndOnDevice();
+        SearchEvent searchEvent = new SearchEvent("", SearchRemoteOperation.SearchType.SHARED_FILTER);
+        launchActivityForSearch(searchEvent, R.id.nav_shared);
     }
 
     private void startRecentlyModifiedSearch(MenuItem menuItem) {
@@ -715,21 +762,7 @@ public abstract class DrawerActivity extends ToolbarActivity
         launchActivityForSearch(searchEvent, id);
     }
 
-    private void handleSearchEvents(SearchEvent searchEvent, int menuItemId) {
-        if (this instanceof FileDisplayActivity) {
-            final Fragment leftFragment = ((FileDisplayActivity) this).getLeftFragment();
-            if (leftFragment instanceof GalleryFragment || leftFragment instanceof SharedListFragment) {
-                launchActivityForSearch(searchEvent, menuItemId);
-            } else {
-                EventBus.getDefault().post(searchEvent);
-            }
-        } else {
-            launchActivityForSearch(searchEvent, menuItemId);
-        }
-    }
-
     private void launchActivityForSearch(SearchEvent searchEvent, int menuItemId) {
-        DrawerActivity.menuItemId = menuItemId;
         Intent intent = new Intent(getApplicationContext(), FileDisplayActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         intent.setAction(Intent.ACTION_SEARCH);
@@ -737,15 +770,19 @@ public abstract class DrawerActivity extends ToolbarActivity
         startActivity(intent);
     }
 
+    public EcosystemManager getEcosystemManager() {
+        return ecosystemManager;
+    }
+
     /**
      * sets the new/current account and restarts. In case the given account equals the actual/current account the call
      * will be ignored.
      *
-     * @param hashCode HashCode of account to be set
+     * @param user to be set
      */
-    public void accountClicked(int hashCode) {
+    public void accountClicked(User user) {
         final User currentUser = accountManager.getUser();
-        if (currentUser.hashCode() != hashCode && accountManager.setCurrentOwnCloudAccount(hashCode)) {
+        if (!currentUser.nameEquals(user) && accountManager.setCurrentOwnCloudAccount(user)) {
             fetchExternalLinks(true);
             restart();
         }
@@ -875,26 +912,16 @@ public abstract class DrawerActivity extends ToolbarActivity
         mQuotaProgressBar.setProgress(relative);
 
         if (relative < RELATIVE_THRESHOLD_WARNING) {
-            viewThemeUtils.material.colorProgressBar(mQuotaProgressBar);
+            viewThemeUtils.material.colorProgressBar(mQuotaProgressBar, ColorRole.PRIMARY);
         } else {
-            viewThemeUtils.material.colorProgressBar(mQuotaProgressBar,
-                                                     getResources().getColor(R.color.infolevel_warning, getTheme()));
+            viewThemeUtils.material.colorProgressBar(
+                mQuotaProgressBar,
+                getResources().getColor(R.color.infolevel_warning, null)
+                                                    );
         }
 
         updateQuotaLink();
         showQuota(true);
-    }
-
-    private void unsetAllDrawerMenuItems() {
-        if (drawerNavigationView != null) {
-            drawerNavigationView.getMenu();
-            Menu menu = drawerNavigationView.getMenu();
-            for (int i = 0; i < menu.size(); i++) {
-                menu.getItem(i).setChecked(false);
-            }
-        }
-
-        menuItemId = Menu.NONE;
     }
 
     private void updateQuotaLink() {
@@ -915,7 +942,6 @@ public abstract class DrawerActivity extends ToolbarActivity
                         externalWebViewIntent.putExtra(ExternalSiteWebView.EXTRA_TITLE, firstQuota.getName());
                         externalWebViewIntent.putExtra(ExternalSiteWebView.EXTRA_URL, firstQuota.getUrl());
                         externalWebViewIntent.putExtra(ExternalSiteWebView.EXTRA_SHOW_SIDEBAR, true);
-                        menuItemId = Menu.NONE;
                         startActivity(externalWebViewIntent);
                     });
 
@@ -964,32 +990,6 @@ public abstract class DrawerActivity extends ToolbarActivity
         };
     }
 
-
-    /**
-     * Sets the menu item as checked in both the drawer and bottom navigation views, if applicable.
-     */
-    @SuppressFBWarnings("RV")
-    public void setNavigationViewItemChecked() {
-        if (drawerNavigationView != null) {
-            MenuItem menuItem = drawerNavigationView.getMenu().findItem(menuItemId);
-
-            if (menuItem != null && !menuItem.isChecked()) {
-                viewThemeUtils.platform.colorNavigationView(drawerNavigationView);
-                menuItem.setChecked(true);
-            }
-        }
-
-        if (bottomNavigationView != null) {
-            MenuItem menuItem = bottomNavigationView.getMenu().findItem(menuItemId);
-
-            // Don't highlight assistant bottom navigation item because Assistant screen doesn't have same bottom navigation bar
-            if (menuItem != null && !menuItem.isChecked() && menuItem.getItemId() != R.id.nav_assistant) {
-                menuItem.setChecked(true);
-            }
-        }
-
-        Log_OC.d(TAG, "New menu item is: " + menuItemId);
-    }
 
     /**
      * Retrieves and shows the user quota if available
@@ -1133,7 +1133,9 @@ public abstract class DrawerActivity extends ToolbarActivity
 
         externalLinksProvider = new ExternalLinksProvider(getContentResolver());
         arbitraryDataProvider = new ArbitraryDataProviderImpl(this);
+        ecosystemManager = new EcosystemManager(this);
     }
+
 
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
@@ -1145,7 +1147,7 @@ public abstract class DrawerActivity extends ToolbarActivity
     public void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
         mIsAccountChooserActive = savedInstanceState.getBoolean(KEY_IS_ACCOUNT_CHOOSER_ACTIVE, false);
-        setNavigationViewItemChecked();
+        highlightNavigationViewItem(getSelectedMenuItemId());
     }
 
     @Override
@@ -1214,6 +1216,8 @@ public abstract class DrawerActivity extends ToolbarActivity
                 preferences.setLockTimestamp(0);
                 finish();
             }
+        } else if (requestCode == REQ_ALL_FILES_ACCESS || requestCode == REQ_MEDIA_ACCESS) {
+            checkStoragePermissionWarningBannerVisibility();
         }
     }
 
@@ -1262,6 +1266,16 @@ public abstract class DrawerActivity extends ToolbarActivity
         Intent intent = new Intent(getApplicationContext(), FileDisplayActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         intent.setAction(FileDisplayActivity.ALL_FILES);
+        startActivity(intent);
+    }
+
+    private void showOnDeviceFiles() {
+        MainApp.showOnlyFilesOnDevice(true);
+        MainApp.showOnlyPersonalFiles(false);
+
+        Intent intent = new Intent(getApplicationContext(), FileDisplayActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.setAction(FileDisplayActivity.ON_DEVICE);
         startActivity(intent);
     }
 
@@ -1427,9 +1441,6 @@ public abstract class DrawerActivity extends ToolbarActivity
     }
 
     private void handleNavItemClickEvent(@IdRes int menuItemId) {
-        if (drawerNavigationView == null) {
-            drawerNavigationView = findViewById(R.id.nav_view);
-        }
         Menu navMenu = drawerNavigationView.getMenu();
         onNavigationItemClicked(navMenu.findItem(menuItemId));
     }
@@ -1440,5 +1451,39 @@ public abstract class DrawerActivity extends ToolbarActivity
 
     public BottomNavigationView getBottomNavigationView() {
        return bottomNavigationView;
+    }
+
+    private void checkStoragePermissionWarningBannerVisibility() {
+        if (this instanceof SyncedFoldersActivity syncedFoldersActivity) {
+            syncedFoldersActivity.setupStoragePermissionWarningBanner();
+        } else if (this instanceof UploadFilesActivity uploadFilesActivity) {
+            uploadFilesActivity.setupStoragePermissionWarningBanner();
+        }
+    }
+
+    private int getSelectedMenuItemId() {
+        if (drawerNavigationView == null) {
+            return R.id.nav_all_files;
+        }
+
+        return NavigationViewExtensionsKt.getSelectedMenuItemId(drawerNavigationView);
+    }
+
+    public boolean isToolbarStyleSearch() {
+        int menuItemId = getSelectedMenuItemId();
+
+        return menuItemId == Menu.NONE ||
+            menuItemId == R.id.nav_all_files ||
+            menuItemId == R.id.nav_personal_files;
+    }
+
+    public boolean isMenuItemIdBelongsToSearchType() {
+        int menuItemId = getSelectedMenuItemId();
+
+        return menuItemId == R.id.nav_favorites ||
+            menuItemId == R.id.nav_shared ||
+            menuItemId == R.id.nav_on_device ||
+            menuItemId == R.id.nav_recently_modified ||
+            menuItemId == R.id.nav_gallery;
     }
 }

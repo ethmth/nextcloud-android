@@ -98,9 +98,7 @@ public final class AppPreferencesImpl implements AppPreferences {
 
     private static final String PREF__GLOBAL_PAUSE_STATE = "global_pause_state";
 
-    private static final String PREF__PDF_ZOOM_TIP_SHOWN = "pdf_zoom_tip_shown";
     private static final String PREF__MEDIA_FOLDER_LAST_PATH = "media_folder_last_path";
-
     private static final String PREF__STORAGE_PERMISSION_REQUESTED = "storage_permission_requested";
     private static final String PREF__IN_APP_REVIEW_DATA = "in_app_review_data";
 
@@ -113,12 +111,18 @@ public final class AppPreferencesImpl implements AppPreferences {
 
     private static final String PREF_LAST_DISPLAYED_ACCOUNT_NAME = "last_displayed_user";
 
+    private static final String AUTO_PREF__LAST_AUTO_UPLOAD_ON_START = "last_auto_upload_on_start";
+
+
     private static final String LOG_ENTRY = "log_entry";
 
     private final Context context;
     private final SharedPreferences preferences;
     private final UserAccountManager userAccountManager;
     private final ListenerRegistry listeners;
+
+    private static final int AUTO_UPLOAD_ON_START_DEBOUNCE_IN_MINUTES = 10;
+    private static final long AUTO_UPLOAD_ON_START_DEBOUNCE_MS = AUTO_UPLOAD_ON_START_DEBOUNCE_IN_MINUTES * 60 * 1000L;
 
     /**
      * Adapter delegating raw {@link SharedPreferences.OnSharedPreferenceChangeListener} calls with key-value pairs to
@@ -657,20 +661,26 @@ public final class AppPreferencesImpl implements AppPreferences {
     }
 
     /**
-     * Get preference value for a folder. If folder is not set itself, it finds an ancestor that is set.
+     * Retrieves a preference value for a specific folder.
+     * <p>
+     * If the folder itself does not have the preference set, the method searches up its ancestor hierarchy
+     * until a value is found. If no value is found in any ancestor, the provided {@code defaultValue} is returned.
+     * <p>
+     * Anonymous users or {@code null} folders will always return the {@code defaultValue}.
      *
-     * @param context        Context object.
-     * @param preferenceName Name of the preference to lookup.
-     * @param folder         Folder.
-     * @param defaultValue   Fallback value in case no ancestor is set.
-     * @return Preference value
+     * @param context        The Android context.
+     * @param user           The user for whom the preference is queried.
+     * @param preferenceName The name/key of the preference to look up.
+     * @param folder         The folder to check.
+     * @param defaultValue   The value to return if no preference is set in the folder hierarchy.
+     * @return The preference value for the folder, or {@code defaultValue} if none is set.
      */
     private static String getFolderPreference(final Context context,
                                               final User user,
                                               final String preferenceName,
                                               final OCFile folder,
                                               final String defaultValue) {
-        if (user.isAnonymous()) {
+        if (user.isAnonymous() || folder == null) {
             return defaultValue;
         }
 
@@ -754,16 +764,6 @@ public final class AppPreferencesImpl implements AppPreferences {
     @Override
     public void setGlobalUploadPaused(boolean globalPausedState) {
         preferences.edit().putBoolean(PREF__GLOBAL_PAUSE_STATE, globalPausedState).apply();
-    }
-
-    @Override
-    public void setPdfZoomTipShownCount(int count) {
-        preferences.edit().putInt(PREF__PDF_ZOOM_TIP_SHOWN, count).apply();
-    }
-
-    @Override
-    public int getPdfZoomTipShownCount() {
-        return preferences.getInt(PREF__PDF_ZOOM_TIP_SHOWN, 0);
     }
 
     @Override
@@ -854,5 +854,17 @@ public final class AppPreferencesImpl implements AppPreferences {
     @Override
     public void setLastDisplayedAccountName(String lastDisplayedAccountName) {
         preferences.edit().putString(PREF_LAST_DISPLAYED_ACCOUNT_NAME, lastDisplayedAccountName).apply();
+    }
+
+    @Override
+    public boolean startAutoUploadOnStart() {
+        long lastRunTime = preferences.getLong(AUTO_PREF__LAST_AUTO_UPLOAD_ON_START, 0L);
+        long now = System.currentTimeMillis();
+        return lastRunTime == 0L || (now - lastRunTime) >= AUTO_UPLOAD_ON_START_DEBOUNCE_MS;
+    }
+
+    @Override
+    public void setLastAutoUploadOnStartTime(long timeInMillisecond) {
+        preferences.edit().putLong(AUTO_PREF__LAST_AUTO_UPLOAD_ON_START, timeInMillisecond).apply();
     }
 }

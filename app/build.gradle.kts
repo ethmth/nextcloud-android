@@ -63,7 +63,7 @@ configurations.configureEach {
 
 // semantic versioning for version code
 val versionMajor = 3
-val versionMinor = 35
+val versionMinor = 37
 val versionPatch = 0
 val versionBuild = 0 // 0-50=Alpha / 51-98=RC / 90-99=stable
 
@@ -75,7 +75,7 @@ val ndkEnv = buildMap {
 }
 
 val configProps = Properties().apply {
-    val file = rootProject.file(".gradle/config.properties")
+    val file = rootProject.file("gradle.properties")
     if (file.exists()) load(FileInputStream(file))
 }
 
@@ -93,8 +93,14 @@ android {
     androidResources.generateLocaleConfig = true
 
     defaultConfig {
+        testInstrumentationRunnerArguments += mapOf(
+            "TEST_SERVER_URL" to "ncTestServerBaseUrl.toString()",
+            "TEST_SERVER_USERNAME" to "ncTestServerUsername.toString()",
+            "TEST_SERVER_PASSWORD" to "ncTestServerPassword.toString()",
+            "disableAnalytics" to "true"
+        )
         applicationId = "com.nextcloud.client"
-        minSdk = 27
+        minSdk = 28
         targetSdk = 36
         compileSdk = 36
 
@@ -108,13 +114,6 @@ android {
         // arguments to be passed to functional tests
         testInstrumentationRunner = if (shotTest) "com.karumi.shot.ShotTestRunner"
         else "com.nextcloud.client.TestRunner"
-
-        testInstrumentationRunnerArguments += mapOf(
-            "TEST_SERVER_URL" to ncTestServerBaseUrl.toString(),
-            "TEST_SERVER_USERNAME" to ncTestServerUsername.toString(),
-            "TEST_SERVER_PASSWORD" to ncTestServerPassword.toString()
-        )
-        testInstrumentationRunnerArguments["disableAnalytics"] = "true"
 
         versionCode = versionMajor * 10000000 + versionMinor * 10000 + versionPatch * 100 + versionBuild
         versionName = when {
@@ -136,12 +135,6 @@ android {
             debug {
                 enableUnitTestCoverage = project.hasProperty("coverage")
                 resConfigs("xxxhdpi")
-
-                buildConfigField(
-                    "String",
-                    "NC_TEST_SERVER_DATA_STRING",
-                    "\"nc://login/user:${ncTestServerUsername}&password:${ncTestServerPassword}&server:${ncTestServerBaseUrl}\""
-                )
             }
         }
 
@@ -205,8 +198,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
     lint {
@@ -247,7 +240,7 @@ kapt.useBuildCache = true
 
 ksp.arg("room.schemaLocation", "$projectDir/schemas")
 
-kotlin.compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
+kotlin.compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
 
 spotless.kotlin {
     target("**/*.kt")
@@ -327,7 +320,7 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<Test>().configureEach {
     // Run tests in parallel
-    maxParallelForks = Runtime.getRuntime().availableProcessors().div(2)
+    maxParallelForks = maxOf(1, Runtime.getRuntime().availableProcessors().div(2))
 
     // increased logging for tests
     testLogging.events("passed", "skipped", "failed")
@@ -354,7 +347,9 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.graphics)
     implementation(libs.compose.material3)
+    implementation(libs.compose.activity)
     implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.foundation)
     debugImplementation(libs.compose.ui.tooling)
     // endregion
 
@@ -513,8 +508,9 @@ dependencies {
     "gplayImplementation"(libs.bundles.gplay)
     // endregion
 
-    // region UI
+    // region common
     implementation(libs.ui)
+    implementation(libs.common.core)
     // endregion
 
     // region Image loading

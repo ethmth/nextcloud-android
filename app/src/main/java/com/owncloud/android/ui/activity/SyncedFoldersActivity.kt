@@ -14,15 +14,12 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Looper
-import android.os.PowerManager
-import android.provider.Settings
 import android.text.TextUtils
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AlertDialog
-import androidx.core.net.toUri
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -36,11 +33,13 @@ import com.nextcloud.client.jobs.MediaFoldersDetectionWork
 import com.nextcloud.client.jobs.NotificationWork
 import com.nextcloud.client.jobs.upload.FileUploadWorker
 import com.nextcloud.client.preferences.SubFolderRule
+import com.nextcloud.utils.BatteryOptimizationHelper
 import com.nextcloud.utils.extensions.getParcelableArgument
 import com.nextcloud.utils.extensions.isDialogFragmentReady
-import com.owncloud.android.BuildConfig
+import com.nextcloud.utils.extensions.setVisibleIf
 import com.owncloud.android.MainApp
 import com.owncloud.android.R
+import com.owncloud.android.databinding.StoragePermissionWarningBannerBinding
 import com.owncloud.android.databinding.SyncedFoldersLayoutBinding
 import com.owncloud.android.datamodel.ArbitraryDataProviderImpl
 import com.owncloud.android.datamodel.MediaFolder
@@ -53,6 +52,7 @@ import com.owncloud.android.datamodel.SyncedFolderProvider
 import com.owncloud.android.files.services.NameCollisionPolicy
 import com.owncloud.android.lib.common.utils.Log_OC
 import com.owncloud.android.ui.adapter.SyncedFolderAdapter
+import com.owncloud.android.ui.adapter.storagePermissionBanner.setup
 import com.owncloud.android.ui.decoration.MediaGridItemDecoration
 import com.owncloud.android.ui.dialog.ConfirmationDialogFragment
 import com.owncloud.android.ui.dialog.SyncedFolderPreferencesDialogFragment
@@ -183,7 +183,7 @@ class SyncedFoldersActivity :
         // setup toolbar
         setupToolbar()
         updateActionBarTitleAndHomeButtonByString(getString(R.string.drawer_synced_folders))
-        setupDrawer()
+        setupDrawer(menuItemId)
         setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
         if (supportActionBar != null) {
             supportActionBar!!.setDisplayHomeAsUpEnabled(true)
@@ -197,7 +197,22 @@ class SyncedFoldersActivity :
             setTheme(R.style.FallbackThemingTheme)
         }
         binding.emptyList.emptyListViewAction.setOnClickListener { showHiddenItems() }
-        PermissionUtil.requestExternalStoragePermission(this, viewThemeUtils, true)
+        setupStoragePermissionWarningBanner()
+    }
+
+    override fun getMenuItemId(): Int = R.id.nav_settings
+
+    override fun onResume() {
+        super.onResume()
+        highlightNavigationViewItem(menuItemId)
+    }
+
+    fun setupStoragePermissionWarningBanner() {
+        val storagePermissionWarningBanner = binding.storagePermissionWarningBanner.root
+        StoragePermissionWarningBannerBinding.bind(storagePermissionWarningBanner).apply {
+            setup(this@SyncedFoldersActivity, R.string.storage_permission_banner_auto_upload_text)
+        }
+        storagePermissionWarningBanner.setVisibleIf(!PermissionUtil.checkStoragePermission(this))
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -229,6 +244,7 @@ class SyncedFoldersActivity :
         val gridWidth = resources.getInteger(R.integer.media_grid_width)
         val lightVersion = resources.getBoolean(R.bool.syncedFolder_light)
         adapter = SyncedFolderAdapter(
+            lifecycleScope,
             this,
             clock,
             gridWidth,
@@ -274,16 +290,14 @@ class SyncedFoldersActivity :
                 contentResolver,
                 perFolderMediaItemLimit,
                 this@SyncedFoldersActivity,
-                false,
-                viewThemeUtils
+                false
             )
             mediaFolders.addAll(
                 MediaProvider.getVideoFolders(
                     contentResolver,
                     perFolderMediaItemLimit,
                     this@SyncedFoldersActivity,
-                    false,
-                    viewThemeUtils
+                    false
                 )
             )
 
@@ -519,7 +533,7 @@ class SyncedFoldersActivity :
             android.R.id.home -> finish()
             R.id.action_create_custom_folder -> {
                 Log_OC.d(TAG, "Show custom folder dialog")
-                if (PermissionUtil.checkExternalStoragePermission(this)) {
+                if (PermissionUtil.checkStoragePermission(this)) {
                     val emptyCustomFolder = SyncedFolderDisplayItem(
                         SyncedFolder.UNPERSISTED_ID,
                         null,
@@ -542,7 +556,7 @@ class SyncedFoldersActivity :
                     )
                     onSyncFolderSettingsClick(0, emptyCustomFolder)
                 } else {
-                    PermissionUtil.requestExternalStoragePermission(this, viewThemeUtils, true)
+                    PermissionUtil.requestStoragePermissionIfNeeded(this)
                 }
                 result = super.onOptionsItemSelected(item)
             }
@@ -566,8 +580,8 @@ class SyncedFoldersActivity :
             }
         }
         if (syncedFolderDisplayItem.isEnabled) {
-            backgroundJobManager.startAutoUploadImmediately(syncedFolderDisplayItem, overridePowerSaving = false)
-            showBatteryOptimizationInfo()
+            backgroundJobManager.startAutoUpload(syncedFolderDisplayItem, overridePowerSaving = false)
+            showBatteryOptimizationDialogIfNeeded()
         }
     }
 
@@ -701,7 +715,7 @@ class SyncedFoldersActivity :
         }
         dialogFragment = null
         if (syncedFolder.isEnabled) {
-            showBatteryOptimizationInfo()
+            showBatteryOptimizationDialogIfNeeded()
         }
     }
 
@@ -729,7 +743,7 @@ class SyncedFoldersActivity :
             // existing synced folder setup to be updated
             syncedFolderProvider.updateSyncFolder(item)
             if (item.isEnabled) {
-                backgroundJobManager.startAutoUploadImmediately(item, overridePowerSaving = false)
+                backgroundJobManager.startAutoUpload(item, overridePowerSaving = false)
             } else {
                 val syncedFolderInitiatedKey = KEY_SYNCED_FOLDER_INITIATED_PREFIX + item.id
                 val arbitraryDataProvider =
@@ -746,7 +760,7 @@ class SyncedFoldersActivity :
         if (storedId != -1L) {
             item.id = storedId
             if (item.isEnabled) {
-                backgroundJobManager.startAutoUploadImmediately(item, overridePowerSaving = false)
+                backgroundJobManager.startAutoUpload(item, overridePowerSaving = false)
             } else {
                 val syncedFolderInitiatedKey = KEY_SYNCED_FOLDER_INITIATED_PREFIX + item.id
                 arbitraryDataProvider.deleteKeyForAccount("global", syncedFolderInitiatedKey)
@@ -825,44 +839,35 @@ class SyncedFoldersActivity :
         }
     }
 
-    private fun showBatteryOptimizationInfo() {
-        if (checkIfBatteryOptimizationEnabled()) {
-            val alertDialogBuilder = MaterialAlertDialogBuilder(this, R.style.Theme_ownCloud_Dialog)
-                .setTitle(getString(R.string.battery_optimization_title))
-                .setMessage(getString(R.string.battery_optimization_message))
-                .setPositiveButton(getString(R.string.battery_optimization_disable)) { _, _ ->
-                    // show instant upload
-                    @SuppressLint("BatteryLife")
-                    val intent = Intent(
-                        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                        ("package:" + BuildConfig.APPLICATION_ID).toUri()
-                    )
-                    if (intent.resolveActivity(packageManager) != null) {
-                        startActivity(intent)
-                    }
-                }
-                .setNeutralButton(getString(R.string.battery_optimization_close)) { dialog, _ -> dialog.dismiss() }
-                .setIcon(R.drawable.ic_battery_alert)
-            if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-                val alertDialog = alertDialogBuilder.show()
-                viewThemeUtils.platform.colorTextButtons(
-                    alertDialog.getButton(AlertDialog.BUTTON_POSITIVE),
-                    alertDialog.getButton(AlertDialog.BUTTON_NEUTRAL)
-                )
-            }
+    private fun showBatteryOptimizationDialogIfNeeded() {
+        if (!BatteryOptimizationHelper.isBatteryOptimizationEnabled(this)) {
+            Log_OC.d(TAG, "battery optimization is disabled")
+            return
         }
+
+        showBatteryOptimizationDialog()
     }
 
-    /**
-     * Check if battery optimization is enabled. If unknown, fallback to true.
-     *
-     * @return true if battery optimization is enabled
-     */
-    private fun checkIfBatteryOptimizationEnabled(): Boolean {
-        val powerManager = getSystemService(POWER_SERVICE) as PowerManager?
-        return when {
-            powerManager != null -> !powerManager.isIgnoringBatteryOptimizations(BuildConfig.APPLICATION_ID)
-            else -> !appInfo.isDebugBuild
+    private fun showBatteryOptimizationDialog() {
+        if (!lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            Log_OC.w(TAG, "Activity not resumed, skipping battery dialog")
+            return
         }
+
+        val dialog = MaterialAlertDialogBuilder(this, R.style.Theme_ownCloud_Dialog)
+            .setTitle(R.string.battery_optimization_title)
+            .setMessage(R.string.battery_optimization_message)
+            .setPositiveButton(R.string.battery_optimization_disable) { _, _ ->
+                BatteryOptimizationHelper.openBatteryOptimizationSettings(this)
+            }
+            .setNeutralButton(R.string.battery_optimization_close, null)
+            .setIcon(R.drawable.ic_battery_alert)
+
+        val alertDialog = dialog.show()
+
+        viewThemeUtils.platform.colorTextButtons(
+            alertDialog.getButton(AlertDialog.BUTTON_POSITIVE),
+            alertDialog.getButton(AlertDialog.BUTTON_NEUTRAL)
+        )
     }
 }

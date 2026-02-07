@@ -10,13 +10,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.Build
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
 import androidx.activity.OnBackPressedCallback
-import androidx.appcompat.app.ActionBar
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toDrawable
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.viewpager2.widget.ViewPager2
@@ -27,12 +26,12 @@ import com.nextcloud.client.editimage.EditImageActivity
 import com.nextcloud.client.jobs.download.FileDownloadHelper
 import com.nextcloud.client.jobs.download.FileDownloadWorker
 import com.nextcloud.client.jobs.download.FileDownloadWorker.Companion.getDownloadFinishMessage
-import com.nextcloud.client.jobs.upload.FileUploadWorker.Companion.getUploadFinishMessage
+import com.nextcloud.client.jobs.upload.FileUploadBroadcastManager
 import com.nextcloud.client.preferences.AppPreferences
 import com.nextcloud.model.WorkerState
-import com.nextcloud.model.WorkerStateLiveData
 import com.nextcloud.utils.extensions.getParcelableArgument
 import com.nextcloud.utils.extensions.getSerializableArgument
+import com.nextcloud.utils.extensions.observeWorker
 import com.owncloud.android.MainApp
 import com.owncloud.android.R
 import com.owncloud.android.datamodel.FileDataStorageManager
@@ -83,35 +82,32 @@ class PreviewImageActivity :
     @Inject
     lateinit var localBroadcastManager: LocalBroadcastManager
 
-    private var actionBar: ActionBar? = null
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        actionBar = supportActionBar
 
         if (savedInstanceState != null &&
             !savedInstanceState.getBoolean(
                 KEY_SYSTEM_VISIBLE,
                 true
             ) &&
-            actionBar != null
+            supportActionBar != null
         ) {
-            actionBar?.hide()
+            supportActionBar?.hide()
         }
 
         setContentView(R.layout.preview_image_activity)
 
         livePhotoFile = intent.getParcelableArgument(EXTRA_LIVE_PHOTO_FILE, OCFile::class.java)
 
-        setupDrawer()
+        setupDrawer(menuItemId)
 
         val chosenFile = intent.getParcelableArgument(EXTRA_FILE, OCFile::class.java)
-        updateActionBarTitleAndHomeButton(chosenFile)
 
-        if (actionBar != null) {
-            viewThemeUtils.files.setWhiteBackButton(this, actionBar!!)
-            actionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.let {
+            updateActionBarTitleAndHomeButton(chosenFile)
+            viewThemeUtils.files.setWhiteBackButton(this, it)
+            it.setDisplayHomeAsUpEnabled(true)
+            it.setBackgroundDrawable(R.color.black.toDrawable())
         }
 
         fullScreenAnchorView = window.decorView
@@ -128,11 +124,9 @@ class PreviewImageActivity :
         handleBackPress()
     }
 
-    private fun applyDisplayCutOutTopPadding() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
-            return
-        }
+    override fun getMenuItemId(): Int = R.id.nav_gallery
 
+    private fun applyDisplayCutOutTopPadding() {
         window.decorView.setOnApplyWindowInsetsListener { view, insets ->
             val displayCutout = insets.displayCutout
             if (displayCutout != null) {
@@ -152,14 +146,10 @@ class PreviewImageActivity :
     }
 
     fun toggleActionBarVisibility(hide: Boolean) {
-        if (actionBar == null) {
-            return
-        }
-
         if (hide) {
-            actionBar?.hide()
+            supportActionBar?.hide()
         } else {
-            actionBar?.show()
+            supportActionBar?.show()
         }
     }
 
@@ -267,6 +257,7 @@ class PreviewImageActivity :
 
     public override fun onStart() {
         super.onStart()
+        registerReceivers()
         val optionalUser = user
         if (optionalUser.isPresent) {
             var file: OCFile? = file ?: throw IllegalStateException("Instanced with a NULL OCFile")
@@ -325,9 +316,9 @@ class PreviewImageActivity :
     }
 
     private fun observeWorkerState() {
-        WorkerStateLiveData.instance().observe(this) { state: WorkerState? ->
+        observeWorker { state: WorkerState? ->
             when (state) {
-                is WorkerState.DownloadStarted -> {
+                is WorkerState.FileDownloadStarted -> {
                     Log_OC.d(TAG, "Download worker started")
                     isDownloadWorkStarted = true
 
@@ -336,7 +327,7 @@ class PreviewImageActivity :
                     }
                 }
 
-                is WorkerState.DownloadFinished -> {
+                is WorkerState.FileDownloadCompleted -> {
                     Log_OC.d(TAG, "Download worker stopped")
                     isDownloadWorkStarted = false
 
@@ -391,25 +382,23 @@ class PreviewImageActivity :
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-
+    private fun registerReceivers() {
         downloadFinishReceiver = DownloadFinishReceiver()
         val downloadIntentFilter = IntentFilter(getDownloadFinishMessage())
         localBroadcastManager.registerReceiver(downloadFinishReceiver!!, downloadIntentFilter)
 
         val uploadFinishReceiver = UploadFinishReceiver()
-        val uploadIntentFilter = IntentFilter(getUploadFinishMessage())
+        val uploadIntentFilter = IntentFilter(FileUploadBroadcastManager.UPLOAD_FINISHED)
         localBroadcastManager.registerReceiver(uploadFinishReceiver, uploadIntentFilter)
     }
 
-    public override fun onPause() {
+    public override fun onStop() {
         if (downloadFinishReceiver != null) {
             localBroadcastManager.unregisterReceiver(downloadFinishReceiver!!)
             downloadFinishReceiver = null
         }
 
-        super.onPause()
+        super.onStop()
     }
 
     private fun backToDisplayActivity() {

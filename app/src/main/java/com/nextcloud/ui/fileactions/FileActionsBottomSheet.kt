@@ -16,7 +16,6 @@ import android.text.style.StyleSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.annotation.IdRes
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.os.bundleOf
@@ -30,6 +29,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.nextcloud.android.common.ui.theme.utils.ColorRole
+import com.nextcloud.android.lib.resources.clientintegration.Endpoint
 import com.nextcloud.client.account.CurrentAccountProvider
 import com.nextcloud.client.di.Injectable
 import com.nextcloud.client.di.ViewModelFactory
@@ -78,6 +78,10 @@ class FileActionsBottomSheet :
 
     private val thumbnailAsyncTasks = mutableListOf<ThumbnailsCacheManager.ThumbnailGenerationTask>()
 
+    private var endpoints: List<Endpoint>? = mutableListOf()
+
+    private lateinit var clientIntegration: ClientIntegration
+
     fun interface ResultListener {
         fun onResult(@IdRes actionId: Int)
     }
@@ -94,11 +98,15 @@ class FileActionsBottomSheet :
 
         viewModel.load(requireArguments(), componentsGetter)
 
+        endpoints = arguments?.getParcelableArrayList(FileActionsViewModel.ARG_ENDPOINTS)
+
         val bottomSheetDialog = dialog as BottomSheetDialog
         bottomSheetDialog.behavior.state = BottomSheetBehavior.STATE_EXPANDED
         bottomSheetDialog.behavior.skipCollapsed = true
 
         viewThemeUtils.platform.colorViewBackground(binding.bottomSheet, ColorRole.SURFACE)
+
+        clientIntegration = ClientIntegration(this, currentUserProvider.user, requireContext())
 
         return binding.root
     }
@@ -123,8 +131,8 @@ class FileActionsBottomSheet :
 
             FileActionsViewModel.UiState.Loading -> {}
             FileActionsViewModel.UiState.Error -> {
-                context?.let {
-                    Toast.makeText(it, R.string.error_file_actions, Toast.LENGTH_SHORT).show()
+                activity?.let {
+                    DisplayUtils.showSnackMessage(it, R.string.error_file_actions)
                 }
                 dismissAllowingStateLoss()
             }
@@ -199,6 +207,20 @@ class FileActionsBottomSheet :
             actions.forEach { action ->
                 val view = inflateActionView(action)
                 binding.fileActionsList.addView(view)
+            }
+
+            // add client integration
+            if (endpoints != null) {
+                for (val e in endpoints) {
+                    val ui = clientIntegration.inflateClientIntegrationActionView(
+                        e,
+                        layoutInflater,
+                        binding,
+                        viewModel,
+                        viewThemeUtils
+                    )
+                    binding.fileActionsList.addView(ui)
+                }
             }
         }
     }
@@ -323,7 +345,7 @@ class FileActionsBottomSheet :
             isOverflow: Boolean,
             @IdRes
             additionalToHide: List<Int>? = null
-        ): FileActionsBottomSheet = newInstance(1, listOf(file), isOverflow, additionalToHide, true)
+        ): FileActionsBottomSheet = newInstance(1, listOf(file), isOverflow, additionalToHide, true, emptyList())
 
         @JvmStatic
         @JvmOverloads
@@ -333,13 +355,15 @@ class FileActionsBottomSheet :
             isOverflow: Boolean,
             @IdRes
             additionalToHide: List<Int>? = null,
-            inSingleFileFragment: Boolean = false
+            inSingleFileFragment: Boolean = false,
+            endpoints: List<Endpoint>
         ): FileActionsBottomSheet = FileActionsBottomSheet().apply {
             val argsBundle = bundleOf(
                 FileActionsViewModel.ARG_ALL_FILES_COUNT to numberOfAllFiles,
                 FileActionsViewModel.ARG_FILES to ArrayList<OCFile>(files),
                 FileActionsViewModel.ARG_IS_OVERFLOW to isOverflow,
-                FileActionsViewModel.ARG_IN_SINGLE_FILE_FRAGMENT to inSingleFileFragment
+                FileActionsViewModel.ARG_IN_SINGLE_FILE_FRAGMENT to inSingleFileFragment,
+                FileActionsViewModel.ARG_ENDPOINTS to endpoints
             )
             additionalToHide?.let {
                 argsBundle.putIntArray(FileActionsViewModel.ARG_ADDITIONAL_FILTER, additionalToHide.toIntArray())

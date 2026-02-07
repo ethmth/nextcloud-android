@@ -23,9 +23,9 @@ import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
-import android.widget.Toast;
 
 import com.google.android.material.snackbar.Snackbar;
+import com.nextcloud.android.common.ui.theme.utils.ColorRole;
 import com.nextcloud.client.account.User;
 import com.nextcloud.utils.extensions.IntentExtensionsKt;
 import com.owncloud.android.R;
@@ -95,8 +95,7 @@ public abstract class EditorWebView extends ExternalSiteWebView {
                 }
             }, 10 * 1000);
         } else {
-            Toast.makeText(getApplicationContext(),
-                           R.string.richdocuments_failed_to_load_document, Toast.LENGTH_LONG).show();
+            DisplayUtils.showSnackMessage(this,R.string.richdocuments_failed_to_load_document);
             finish();
         }
     }
@@ -132,6 +131,8 @@ public abstract class EditorWebView extends ExternalSiteWebView {
     protected void postOnCreate() {
         super.postOnCreate();
 
+        viewThemeUtils.platform.colorCircularProgressBar(binding.progressBar2, ColorRole.PRIMARY);
+
         getWebView().setWebChromeClient(new WebChromeClient() {
             final EditorWebView activity = EditorWebView.this;
 
@@ -152,7 +153,7 @@ public abstract class EditorWebView extends ExternalSiteWebView {
                     activity.startActivityForResult(intent, REQUEST_LOCAL_FILE);
                 } catch (ActivityNotFoundException e) {
                     uploadMessage = null;
-                    Toast.makeText(getBaseContext(), "Cannot open file chooser", Toast.LENGTH_LONG).show();
+                    DisplayUtils.showSnackMessage(EditorWebView.this, R.string.editor_web_view_cannot_open_file);
                     return false;
                 }
 
@@ -163,8 +164,7 @@ public abstract class EditorWebView extends ExternalSiteWebView {
         setFile(IntentExtensionsKt.getParcelableArgument(getIntent(), ExternalSiteWebView.EXTRA_FILE, OCFile.class));
 
         if (getFile() == null) {
-            Toast.makeText(getApplicationContext(),
-                           R.string.richdocuments_failed_to_load_document, Toast.LENGTH_LONG).show();
+            DisplayUtils.showSnackMessage(this, R.string.richdocuments_failed_to_load_document);
             finish();
         }
 
